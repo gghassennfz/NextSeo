@@ -86,7 +86,7 @@ export function HeroSection({ onScan, isScanning = false }: HeroSectionProps) {
               transition={{ delay: 0.2 }}
               className="mb-6"
             >
-              <Badge variant="outline" className="bg-blue-100 border-blue-300 text-blue-800">
+              <Badge variant="outline" className="bg-white/50 backdrop-blur-sm">
                 🚀 Professional SEO Analysis Tool
               </Badge>
             </motion.div>
@@ -129,7 +129,7 @@ export function HeroSection({ onScan, isScanning = false }: HeroSectionProps) {
                         placeholder="Enter your website URL (e.g., https://example.com)"
                         value={url}
                         onChange={(e) => setUrl(e.target.value)}
-                        className="h-12 text-lg bg-white text-gray-900 border-gray-300 placeholder-gray-500"
+                        className="h-12 text-lg"
                         disabled={isScanning}
                       />
                       {error && (

@@ -255,8 +255,8 @@ export function TechnicalSEOAudit({ analysis, url }: TechnicalSEOAuditProps) {
                       <div className="flex items-center gap-3">
                         {getIssueIcon(issue.type)}
                         <div className="text-left">
-                          <div className="font-medium text-gray-900">{issue.title}</div>
-                          <div className="text-sm text-gray-700">{issue.category}</div>
+                          <div className="font-medium">{issue.title}</div>
+                          <div className="text-sm text-gray-600">{issue.category}</div>
                         </div>
                       </div>
                       <div className="flex items-center gap-2">
