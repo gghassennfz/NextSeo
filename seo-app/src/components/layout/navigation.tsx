@@ -9,8 +9,8 @@ import { SignInDialog } from '@/components/auth/sign-in-dialog'
 import { SignUpDialog } from '@/components/auth/sign-up-dialog'
 
 interface NavigationProps {
-  currentPage: 'home' | 'dashboard' | 'pricing'
-  onPageChange: (page: 'home' | 'dashboard' | 'pricing') => void
+  currentPage: 'home' | 'dashboard' | 'pricing' | 'ai-analysis'
+  onPageChange: (page: 'home' | 'dashboard' | 'pricing' | 'ai-analysis') => void
 }
 
 export function Navigation({ currentPage, onPageChange }: NavigationProps) {
@@ -34,6 +34,7 @@ export function Navigation({ currentPage, onPageChange }: NavigationProps) {
   const navigation = [
     { name: 'Home', key: 'home' as const },
     { name: 'Dashboard', key: 'dashboard' as const, requireAuth: true },
+    { name: 'AI Analysis', key: 'ai-analysis' as const },
     { name: 'Pricing', key: 'pricing' as const },
   ]
 

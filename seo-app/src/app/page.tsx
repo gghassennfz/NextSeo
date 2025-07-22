@@ -10,9 +10,10 @@ import { PricingPage } from '@/components/pricing/pricing-page'
 import { SEOAnalysis } from '@/types/seo'
 import { exportToPDF } from '@/lib/pdf-export'
 import { useAuth } from '@/contexts/auth-context'
+import AIAnalysisPage from './ai-analysis/page'
 
 export default function Home() {
-  const [currentPage, setCurrentPage] = useState<'home' | 'dashboard' | 'pricing'>('home')
+  const [currentPage, setCurrentPage] = useState<'home' | 'dashboard' | 'pricing' | 'ai-analysis'>('home')
   const [isScanning, setIsScanning] = useState(false)
   const [analysis, setAnalysis] = useState<SEOAnalysis | null>(null)
   const [isExporting, setIsExporting] = useState(false)
@@ -103,6 +104,8 @@ export default function Home() {
         )
       case 'pricing':
         return <PricingPage />
+      case 'ai-analysis':
+        return <AIAnalysisPage />
       case 'home':
       default:
         return (
