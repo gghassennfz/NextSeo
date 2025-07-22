@@ -5,6 +5,7 @@ A comprehensive, production-ready SEO analysis web application built with Next.j
 ## 🚀 Features
 
 ### Core SEO Analysis
+
 - **Complete Website Analysis**: Meta tags, content quality, link structure, performance, crawlability, and external factors
 - **Real-time Scanning**: Fast analysis using Cheerio and custom SEO algorithms
 - **Interactive Results**: Collapsible cards with detailed insights and recommendations
@@ -12,22 +13,26 @@ A comprehensive, production-ready SEO analysis web application built with Next.j
 - **Overall Score**: Comprehensive SEO score with visual donut chart
 
 ### User Management
+
 - **Authentication**: Secure sign-up/sign-in with Supabase Auth
 - **User Profiles**: Personalized dashboard and profile management
 - **Scan History**: Complete history of all user scans with search and filtering
 
 ### Subscription & Payments
+
 - **Free Tier**: 3 scans per day for free users
 - **Pro Tier**: Unlimited scans with advanced features
 - **Stripe Integration**: Secure payment processing with webhooks
 - **Usage Tracking**: Real-time usage monitoring and limits
 
 ### Analytics & Reporting
+
 - **PDF Export**: Professional PDF reports using jsPDF
 - **Analytics Dashboard**: Scan statistics and insights
 - **Usage Analytics**: Track scan counts, score distributions, and trends
 
 ### Modern UI/UX
+
 - **Responsive Design**: Mobile-first approach with Tailwind CSS
 - **Animated Interface**: Smooth transitions with Framer Motion
 - **Premium Feel**: Professional design with modern components
@@ -223,12 +228,14 @@ seo-app/
 ## 🔧 Configuration
 
 ### Supabase Setup
+
 1. Create a new Supabase project
 2. Enable Email authentication in Auth settings
 3. Run the SQL queries provided above
 4. Copy your project URL and anon key to environment variables
 
 ### Stripe Setup
+
 1. Create a Stripe account
 2. Create products for Pro Monthly and Pro Yearly plans
 3. Copy the price IDs to environment variables
@@ -237,6 +244,7 @@ seo-app/
 ## 📊 Usage Analytics
 
 The app tracks various analytics:
+
 - Scan counts per user
 - Average SEO scores
 - Most scanned domains
@@ -263,6 +271,7 @@ The app tracks various analytics:
 ### Other Platforms
 
 The app can be deployed on any platform that supports Next.js:
+
 - Netlify
 - Railway
 - Heroku
@@ -271,16 +280,19 @@ The app can be deployed on any platform that supports Next.js:
 ## 🎨 Customization
 
 ### Branding
+
 - Update the logo and branding in `src/components/layout/navigation.tsx`
 - Modify colors in `tailwind.config.js`
 - Update metadata in `src/app/layout.tsx`
 
 ### SEO Analysis
+
 - Modify analysis algorithms in `src/lib/seo-analyzer.ts`
 - Add new analysis sections by creating components in `src/components/seo/`
 - Update types in `src/types/seo.ts`
 
 ### Pricing
+
 - Modify pricing tiers in `src/components/pricing/pricing-page.tsx`
 - Update usage limits in `src/app/api/reports/route.ts`
 
@@ -289,10 +301,12 @@ The app can be deployed on any platform that supports Next.js:
 ### Common Issues
 
 1. **Supabase Connection Issues**
+
    - Verify your environment variables
    - Check if RLS policies are properly set up
 
 2. **Stripe Webhook Failures**
+
    - Ensure webhook secret is correct
    - Check webhook URL is accessible
    - Verify event types are configured
@@ -327,3 +341,10 @@ For support, email support@seoanalyzerpro.com or create an issue in the reposito
 ---
 
 **Built with ❤️ by Cascade AI**
+
+# Contributors
+
+Thanks to the following people for contributing to this project:
+
+- **[@AyoubAloui94](https://github.com/AyoubAloui94)** – Fixed Tailwind config, improved SEO title parsing
+- **[@gghassennfz](https://github.com/gghassennfz)** – Maintainer
