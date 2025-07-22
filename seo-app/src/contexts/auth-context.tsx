@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useEffect, useState } from 'react'
 import { User, Session } from '@supabase/supabase-js'
-import { createSupabaseClient, Profile } from '@/lib/supabase'
+import { getSupabaseClient, Profile } from '@/lib/supabase'
 
 interface AuthContextType {
   user: User | null
@@ -43,7 +43,13 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [profile, setProfile] = useState<Profile | null>(null)
   const [session, setSession] = useState<Session | null>(null)
   const [loading, setLoading] = useState(true)
-  const supabase = createSupabaseClient()
+  const [isHydrated, setIsHydrated] = useState(false)
+  const supabase = getSupabaseClient()
+
+  // Fix hydration mismatch by ensuring client-side rendering
+  useEffect(() => {
+    setIsHydrated(true)
+  }, [])
 
   const fetchProfile = async (userId: string) => {
     try {
@@ -58,7 +64,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
         return null
       }
 
-      return data as Profile
+      return data as unknown as Profile
     } catch (error) {
       console.error('Error fetching profile:', error)
       return null
@@ -141,6 +147,24 @@ export function AuthProvider({ children }: AuthProviderProps) {
     signUp,
     signOut,
     refreshProfile,
+  }
+
+  // Prevent hydration mismatch by not rendering auth-dependent content until hydrated
+  if (!isHydrated) {
+    return (
+      <AuthContext.Provider value={{
+        user: null,
+        profile: null,
+        session: null,
+        loading: true,
+        signIn,
+        signUp,
+        signOut,
+        refreshProfile,
+      }}>
+        {children}
+      </AuthContext.Provider>
+    )
   }
 
   return (
