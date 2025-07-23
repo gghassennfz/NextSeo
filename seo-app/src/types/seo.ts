@@ -115,6 +115,10 @@ export interface ExternalFactorsAnalysis {
     exists: boolean
     url?: string
   }
+  appleTouchIcon: {
+    exists: boolean
+    url?: string
+  }
   openGraph: {
     title?: string
     description?: string
@@ -138,7 +142,7 @@ export interface ExternalFactorsAnalysis {
 export interface User {
   id: string
   email: string
-  subscription: 'free' | 'pro'
+  subscription: "free" | "pro"
   dailyScans: number
   lastScanDate: string
   createdAt: string
