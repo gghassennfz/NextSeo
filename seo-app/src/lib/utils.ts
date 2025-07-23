@@ -49,3 +49,7 @@ export function normalizeUrl(url: string): string {
     }
   }
 }
+
+export function scoreRange(value: number, excellent: number, good: number): number {
+  return value <= excellent ? 25 : value <= good ? 15 : 5
+}

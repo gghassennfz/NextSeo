@@ -1,6 +1,7 @@
 import * as cheerio from "cheerio"
 import axios from "axios"
 import { SEOAnalysis, MetaAnalysis, PageQualityAnalysis, LinkStructureAnalysis, PageStructureAnalysis, PerformanceAnalysis, CrawlabilityAnalysis, ExternalFactorsAnalysis } from "@/types/seo"
+import { scoreRange } from "./utils"
 
 export class SEOAnalyzer {
   private $: cheerio.CheerioAPI
@@ -240,9 +241,9 @@ export class SEOAnalyzer {
     if (responseTime > 3000) issues.push("Slow response time (> 3s)")
     if (pageSize > 1024 * 1024) issues.push("Large page size (> 1MB)")
     if (cssFiles > 5) issues.push("Too many CSS files")
-    if (jsFiles > 5) issues.push("Too many JS files")
+    if (jsFiles > 10) issues.push("Too many JS files")
 
-    const score = (responseTime <= 1000 ? 25 : responseTime <= 3000 ? 15 : 5) + (pageSize <= 512 * 1024 ? 25 : pageSize <= 1024 * 1024 ? 15 : 5) + (cssFiles <= 3 ? 25 : cssFiles <= 5 ? 15 : 5) + (jsFiles <= 3 ? 25 : jsFiles <= 5 ? 15 : 5)
+    const score = scoreRange(responseTime, 1000, 3000) + scoreRange(pageSize, 512 * 1024, 1024 * 1024) + scoreRange(cssFiles, 3, 5) + scoreRange(jsFiles, 10, 15)
 
     return {
       score: Math.min(100, score),
@@ -264,7 +265,7 @@ export class SEOAnalyzer {
     const langAttribute = this.$("html").attr("lang")
 
     // Check robots.txt
-    let robotsTxt = { exists: false, content: "", blocks: [] as string[] }
+    const robotsTxt = { exists: false, content: "", blocks: [] as string[] }
     try {
       const robotsUrl = new URL("/robots.txt", this.url).href
       const robotsResponse = await axios.get(robotsUrl, { timeout: 5000 })
@@ -281,7 +282,7 @@ export class SEOAnalyzer {
     }
 
     // Check sitemap
-    let sitemap = { exists: false, url: "" }
+    const sitemap = { exists: false, url: "" }
     if (robotsTxt.content.includes("Sitemap:")) {
       const sitemapLine = robotsTxt.content.split("\n").find(line => line.includes("Sitemap:"))
       if (sitemapLine) {
@@ -317,7 +318,8 @@ export class SEOAnalyzer {
 
   private analyzeExternalFactors(): ExternalFactorsAnalysis {
     const isHttps = this.url.startsWith("https://")
-    const favicon = this.$('link[rel*="icon"]')
+    const favicon = this.$('link[rel="icon"]')
+    const appleTouchIcon = this.$('link[rel="apple-touch-icon"]')
 
     // Open Graph
     const ogTitle = this.$('meta[property="og:title"]').attr("content")
@@ -349,12 +351,13 @@ export class SEOAnalyzer {
     const issues: string[] = []
     if (!isHttps) issues.push("Not using HTTPS")
     if (!favicon.length) issues.push("Missing favicon")
+    if (!appleTouchIcon.length) issues.push("Missing Apple Touch Icon")
     if (!ogTitle) issues.push("Missing Open Graph title")
     if (!ogDescription) issues.push("Missing Open Graph description")
     if (!twitterCard) issues.push("Missing Twitter Card")
     if (schemaTypes.length === 0) issues.push("No structured data found")
 
-    const score = (isHttps ? 20 : 0) + (favicon.length > 0 ? 15 : 0) + (ogTitle && ogDescription ? 20 : 10) + (twitterCard ? 15 : 0) + (schemaTypes.length > 0 ? 15 : 0) + (issues.length <= 2 ? 15 : 0)
+    const score = (isHttps ? 20 : 0) + (favicon.length > 0 ? 15 : 0) + (appleTouchIcon.length > 0 ? 10 : 0) + (ogTitle && ogDescription ? 20 : ogTitle || ogDescription ? 10 : 0) + (twitterCard ? 15 : 0) + (schemaTypes.length > 0 ? 15 : 0) + (issues.length <= 2 ? 15 : 0)
 
     return {
       score: Math.min(100, score),
