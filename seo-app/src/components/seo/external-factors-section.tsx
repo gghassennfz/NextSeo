@@ -1,74 +1,24 @@
-import React from 'react'
-import { Shield, Share2, Twitter, Facebook, AlertTriangle, CheckCircle2, Globe } from 'lucide-react'
-import { SectionCard } from './section-card'
-import { Badge } from '@/components/ui/badge'
-import { ExternalFactorsAnalysis } from '@/types/seo'
+import React, { ReactNode } from "react"
+import { Shield, Share2, Twitter, Facebook, AlertTriangle, CheckCircle2, Globe } from "lucide-react"
+import { SectionCard } from "./section-card"
+import { Badge } from "@/components/ui/badge"
+import { ExternalFactorsAnalysis } from "@/types/seo"
 
 interface ExternalFactorsSectionProps {
   data: ExternalFactorsAnalysis
 }
 
 export function ExternalFactorsSection({ data }: ExternalFactorsSectionProps) {
+  // console.log(data)
   return (
-    <SectionCard
-      title="External Factors"
-      score={data.score}
-      icon={<Globe className="w-5 h-5" />}
-    >
+    <SectionCard title="External Factors" score={data.score} icon={<Globe className="w-5 h-5" />}>
       <div className="space-y-6">
         {/* HTTPS Security */}
-        <div className="space-y-3">
-          <div className="flex items-center justify-between">
-            <h4 className="font-medium flex items-center space-x-2">
-              <Shield className="w-4 h-4" />
-              <span>HTTPS Security</span>
-            </h4>
-            <Badge variant={data.https ? 'success' : 'error'}>
-              {data.https ? 'Secure' : 'Not Secure'}
-            </Badge>
-          </div>
-          
-          {data.https ? (
-            <div className="flex items-center space-x-2 text-sm text-green-600">
-              <CheckCircle2 className="w-3 h-3" />
-              <span>Site uses HTTPS encryption</span>
-            </div>
-          ) : (
-            <div className="flex items-center space-x-2 text-sm text-red-600">
-              <AlertTriangle className="w-3 h-3" />
-              <span>Site is not using HTTPS - this affects SEO rankings</span>
-            </div>
-          )}
-        </div>
+        <SectionElement icon={<Shield className="w-4 h-4" />} title="HTTPS Security" element={{ exists: !!data?.https }} successMessage="Site uses HTTPS encryption" warningMessage="Site is not using HTTPS - this affects SEO rankings" />
 
         {/* Favicon */}
-        <div className="space-y-3">
-          <div className="flex items-center justify-between">
-            <h4 className="font-medium">Favicon</h4>
-            <Badge variant={data.favicon.exists ? 'success' : 'warning'}>
-              {data.favicon.exists ? 'Present' : 'Missing'}
-            </Badge>
-          </div>
-          
-          {data.favicon.exists ? (
-            <div className="space-y-2">
-              <div className="flex items-center space-x-2 text-sm text-green-600">
-                <CheckCircle2 className="w-3 h-3" />
-                <span>Favicon found</span>
-              </div>
-              {data.favicon.url && (
-                <div className="p-2 bg-gray-50 rounded text-xs font-mono">
-                  <div className="truncate">{data.favicon.url}</div>
-                </div>
-              )}
-            </div>
-          ) : (
-            <div className="flex items-center space-x-2 text-sm text-yellow-600">
-              <AlertTriangle className="w-3 h-3" />
-              <span>Consider adding a favicon for better branding</span>
-            </div>
-          )}
-        </div>
+        <SectionElement title="Favicon" element={data.favicon} successMessage="Favicon found" warningMessage="Consider adding a favicon for better branding" />
+        <SectionElement title="Apple touch icon" element={data.appleTouchIcon} successMessage="Apple touch icon found" warningMessage="Consider adding a Apple touch icon for better branding" />
 
         {/* Open Graph */}
         <div className="space-y-3">
@@ -77,11 +27,9 @@ export function ExternalFactorsSection({ data }: ExternalFactorsSectionProps) {
               <Facebook className="w-4 h-4" />
               <span>Open Graph Tags</span>
             </h4>
-            <Badge variant={data.openGraph.title && data.openGraph.description ? 'success' : 'warning'}>
-              {data.openGraph.title && data.openGraph.description ? 'Complete' : 'Incomplete'}
-            </Badge>
+            <Badge variant={data.openGraph.title && data.openGraph.description ? "success" : "warning"}>{data.openGraph.title && data.openGraph.description ? "Complete" : "Incomplete"}</Badge>
           </div>
-          
+
           <div className="space-y-2">
             {data.openGraph.title ? (
               <div className="space-y-1">
@@ -99,7 +47,7 @@ export function ExternalFactorsSection({ data }: ExternalFactorsSectionProps) {
                 <span>Missing og:title</span>
               </div>
             )}
-            
+
             {data.openGraph.description ? (
               <div className="space-y-1">
                 <div className="flex items-center space-x-2 text-sm text-green-600">
@@ -116,7 +64,7 @@ export function ExternalFactorsSection({ data }: ExternalFactorsSectionProps) {
                 <span>Missing og:description</span>
               </div>
             )}
-            
+
             {data.openGraph.image && (
               <div className="space-y-1">
                 <div className="flex items-center space-x-2 text-sm text-green-600">
@@ -138,24 +86,22 @@ export function ExternalFactorsSection({ data }: ExternalFactorsSectionProps) {
               <Twitter className="w-4 h-4" />
               <span>Twitter Card</span>
             </h4>
-            <Badge variant={data.twitterCard.card ? 'success' : 'warning'}>
-              {data.twitterCard.card ? data.twitterCard.card : 'Missing'}
-            </Badge>
+            <Badge variant={data.twitterCard.card ? "success" : "warning"}>{data.twitterCard.card ? data.twitterCard.card : "Missing"}</Badge>
           </div>
-          
+
           {data.twitterCard.card ? (
             <div className="space-y-2">
               <div className="flex items-center space-x-2 text-sm text-green-600">
                 <CheckCircle2 className="w-3 h-3" />
                 <span>Twitter Card configured</span>
               </div>
-              
+
               {data.twitterCard.title && (
                 <div className="p-2 bg-gray-50 rounded text-xs">
                   <strong>Title:</strong> {data.twitterCard.title}
                 </div>
               )}
-              
+
               {data.twitterCard.description && (
                 <div className="p-2 bg-gray-50 rounded text-xs">
                   <strong>Description:</strong> {data.twitterCard.description}
@@ -171,39 +117,15 @@ export function ExternalFactorsSection({ data }: ExternalFactorsSectionProps) {
         </div>
 
         {/* Schema Markup */}
-        <div className="space-y-3">
-          <div className="flex items-center justify-between">
-            <h4 className="font-medium flex items-center space-x-2">
-              <Share2 className="w-4 h-4" />
-              <span>Structured Data</span>
-            </h4>
-            <Badge variant={data.schemaMarkup.exists ? 'success' : 'warning'}>
-              {data.schemaMarkup.exists ? `${data.schemaMarkup.types.length} types` : 'None'}
-            </Badge>
+        <SectionElement title="Schema Markup" element={data.schemaMarkup} successMessage="Structured data found" warningMessage="No structured data found" icon={<Share2 className="w-4 h-4" />}>
+          <div className="flex flex-wrap gap-1">
+            {data.schemaMarkup.types.map((type, index) => (
+              <Badge key={`${type}-${index}`} variant="outline" className="text-xs">
+                {type}
+              </Badge>
+            ))}
           </div>
-          
-          {data.schemaMarkup.exists ? (
-            <div className="space-y-2">
-              <div className="flex items-center space-x-2 text-sm text-green-600">
-                <CheckCircle2 className="w-3 h-3" />
-                <span>Structured data found</span>
-              </div>
-              
-              <div className="flex flex-wrap gap-1">
-                {data.schemaMarkup.types.map((type, index) => (
-                  <Badge key={index} variant="outline" className="text-xs">
-                    {type}
-                  </Badge>
-                ))}
-              </div>
-            </div>
-          ) : (
-            <div className="flex items-center space-x-2 text-sm text-yellow-600">
-              <AlertTriangle className="w-3 h-3" />
-              <span>No structured data found</span>
-            </div>
-          )}
-        </div>
+        </SectionElement>
 
         {/* Issues */}
         {data.issues.length > 0 && (
@@ -233,5 +155,39 @@ export function ExternalFactorsSection({ data }: ExternalFactorsSectionProps) {
         </div>
       </div>
     </SectionCard>
+  )
+}
+
+function SectionElement({ title, element, successMessage, warningMessage, icon = null, children = null }: { title: string; element: { exists: boolean; url?: string }; successMessage: string; warningMessage: string; icon?: ReactNode; children?: ReactNode }) {
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center justify-between">
+        <h4 className="font-medium flex items-center space-x-2">
+          {icon ? icon : null}
+          <span>{title}</span>
+        </h4>
+        <Badge variant={element.exists ? "success" : "warning"}>{element.exists ? "Present" : "Missing"}</Badge>
+      </div>
+
+      {element.exists ? (
+        <div className="space-y-2">
+          <div className="flex items-center space-x-2 text-sm text-green-600">
+            <CheckCircle2 className="w-3 h-3" />
+            <span>{successMessage}</span>
+          </div>
+          {element.url && (
+            <div className="p-2 bg-gray-50 rounded text-xs font-mono">
+              <div className="truncate">{element.url}</div>
+            </div>
+          )}
+        </div>
+      ) : (
+        <div className="flex items-center space-x-2 text-sm text-yellow-600">
+          <AlertTriangle className="w-3 h-3" />
+          <span>{warningMessage}</span>
+        </div>
+      )}
+      {children}
+    </div>
   )
 }

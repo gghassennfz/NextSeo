@@ -366,6 +366,10 @@ export class SEOAnalyzer {
         exists: favicon.length > 0,
         url: favicon.attr("href")
       },
+      appleTouchIcon: {
+        exists: appleTouchIcon.length > 0,
+        url: appleTouchIcon.attr("href")
+      },
       openGraph: {
         title: ogTitle,
         description: ogDescription,
