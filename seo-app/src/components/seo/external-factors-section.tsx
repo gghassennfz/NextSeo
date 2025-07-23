@@ -9,7 +9,7 @@ interface ExternalFactorsSectionProps {
 }
 
 export function ExternalFactorsSection({ data }: ExternalFactorsSectionProps) {
-  console.log(data)
+  // console.log(data)
   return (
     <SectionCard title="External Factors" score={data.score} icon={<Globe className="w-5 h-5" />}>
       <div className="space-y-6">
