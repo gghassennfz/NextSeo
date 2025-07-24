@@ -63,33 +63,59 @@ export function ProfilePage({ onClose }: ProfilePageProps) {
     if (!user) return
 
     setLoading(true)
+    console.log('Loading user data for user:', user.id)
+    
     try {
-      // Load scan reports
+      // Load scan reports with error handling
+      console.log('Loading scan reports...')
       const reports = await scanReportService.getScanReports(user.id, 20)
-      setScanReports(reports)
+      console.log('Loaded scan reports:', reports.length)
+      setScanReports(reports || [])
 
-      // Load usage logs
+      // Load usage logs with error handling
+      console.log('Loading usage logs...')
       const logs = await usageLogService.getUsageLogs(user.id, 50)
-      setUsageLogs(logs)
+      console.log('Loaded usage logs:', logs.length)
+      setUsageLogs(logs || [])
 
-      // Load user settings
+      // Load user settings with error handling
+      console.log('Loading user settings...')
       const userSettings = await userSettingsService.getSettings(user.id)
       console.log('Loaded user settings:', userSettings)
       
       // Since we have a single settings record, just use the first one
-      if (userSettings.length > 0) {
+      if (userSettings && userSettings.length > 0) {
         const userSetting = userSettings[0]
         setSettings({
-          email_notifications: userSetting.email_notifications,
-          weekly_reports: userSetting.weekly_reports,
-          dark_mode: userSetting.dark_mode,
-          language: userSetting.language,
-          timezone: userSetting.timezone
+          emailNotifications: userSetting.email_notifications || true,
+          scanReminders: userSetting.scan_reminders || false,
+          weeklyReports: userSetting.weekly_reports || true,
+          publicProfile: userSetting.public_profile || false
+        })
+      } else {
+        console.log('No user settings found, using defaults')
+        setSettings({
+          emailNotifications: true,
+          scanReminders: false,
+          weeklyReports: true,
+          publicProfile: false
         })
       }
+      
+      console.log('User data loading completed successfully')
     } catch (error) {
       console.error('Error loading user data:', error)
+      // Set default values on error
+      setScanReports([])
+      setUsageLogs([])
+      setSettings({
+        emailNotifications: true,
+        scanReminders: false,
+        weeklyReports: true,
+        publicProfile: false
+      })
     } finally {
+      console.log('Setting loading to false')
       setLoading(false)
     }
   }
@@ -229,21 +255,21 @@ export function ProfilePage({ onClose }: ProfilePageProps) {
               <div className="flex items-center space-x-6 mt-4">
                 <div className="text-center">
                   <div className="text-2xl font-bold text-blue-600">
-                    {profile.daily_scans_used}
+                    {profile.total_scans || 0}
                   </div>
-                  <div className="text-xs text-gray-500">Daily Scans</div>
+                  <div className="text-xs text-gray-500">Total Scans</div>
                 </div>
                 <div className="text-center">
                   <div className="text-2xl font-bold text-green-600">
-                    {profile.monthly_scans_used}
+                    {scanReports.length}
                   </div>
-                  <div className="text-xs text-gray-500">Monthly Scans</div>
+                  <div className="text-xs text-gray-500">Saved Reports</div>
                 </div>
                 <div className="text-center">
                   <div className="text-2xl font-bold text-purple-600">
-                    {scanReports.length}
+                    {usageLogs.length}
                   </div>
-                  <div className="text-xs text-gray-500">Total Reports</div>
+                  <div className="text-xs text-gray-500">Activities</div>
                 </div>
               </div>
             </div>
@@ -361,10 +387,15 @@ export function ProfilePage({ onClose }: ProfilePageProps) {
                       <div className="flex-1">
                         <div className="flex items-center space-x-2">
                           <Globe className="w-4 h-4 text-blue-500" />
-                          <h3 className="font-medium">{report.title || report.url}</h3>
-                          <Badge variant={report.overall_score >= 80 ? "default" : report.overall_score >= 60 ? "secondary" : "destructive"}>
-                            {report.overall_score}%
+                          <h3 className="font-medium">{report.url}</h3>
+                          <Badge variant={report.seo_score >= 80 ? "default" : report.seo_score >= 60 ? "secondary" : "destructive"}>
+                            SEO: {report.seo_score}%
                           </Badge>
+                          {report.performance_score && (
+                            <Badge variant={report.performance_score >= 80 ? "default" : report.performance_score >= 60 ? "secondary" : "destructive"}>
+                              Perf: {report.performance_score}%
+                            </Badge>
+                          )}
                         </div>
                         <div className="text-sm text-gray-500 mt-1">
                           {report.url} • {formatDate(report.created_at)}

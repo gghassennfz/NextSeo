@@ -55,10 +55,10 @@ export default function Home() {
             url: url,
             title: analysisData.title || `SEO Analysis - ${new URL(url).hostname}`,
             description: analysisData.description || `SEO analysis for ${url}`,
-            seo_score: analysisData.sections?.seo?.score || analysisData.overallScore || null,
-            performance_score: analysisData.sections?.performance?.score || null,
-            accessibility_score: analysisData.sections?.accessibility?.score || null,
-            best_practices_score: analysisData.sections?.bestPractices?.score || null,
+            seo_score: Math.round(analysisData.sections?.seo?.score || analysisData.overallScore || 0) || undefined,
+            performance_score: analysisData.sections?.performance?.score ? Math.round(analysisData.sections.performance.score) : undefined,
+            accessibility_score: analysisData.sections?.accessibility?.score ? Math.round(analysisData.sections.accessibility.score) : undefined,
+            best_practices_score: analysisData.sections?.bestPractices?.score ? Math.round(analysisData.sections.bestPractices.score) : undefined,
             report_data: analysisData
           })
 

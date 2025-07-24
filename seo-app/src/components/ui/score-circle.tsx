@@ -8,12 +8,15 @@ interface ScoreCircleProps {
 }
 
 export function ScoreCircle({ score, size = 'md', className }: ScoreCircleProps) {
+  // Ensure score is a valid number, default to 0 if invalid
+  const validScore = isNaN(score) || score === null || score === undefined ? 0 : Math.max(0, Math.min(100, score))
+  
   const radius = size === 'sm' ? 30 : size === 'md' ? 45 : 60
   const strokeWidth = size === 'sm' ? 4 : size === 'md' ? 6 : 8
   const normalizedRadius = radius - strokeWidth * 2
   const circumference = normalizedRadius * 2 * Math.PI
   const strokeDasharray = `${circumference} ${circumference}`
-  const strokeDashoffset = circumference - (score / 100) * circumference
+  const strokeDashoffset = circumference - (validScore / 100) * circumference
 
   return (
     <div className={cn("relative", className)}>
@@ -51,9 +54,9 @@ export function ScoreCircle({ score, size = 'md', className }: ScoreCircleProps)
         <span className={cn(
           "font-bold",
           size === 'sm' ? 'text-sm' : size === 'md' ? 'text-xl' : 'text-3xl',
-          getScoreColor(score)
+          getScoreColor(validScore)
         )}>
-          {Math.round(score)}
+          {Math.round(validScore)}
         </span>
       </div>
     </div>

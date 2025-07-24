@@ -25,10 +25,7 @@ export interface Profile {
   full_name?: string
   avatar_url?: string
   subscription_tier: 'free' | 'pro' | 'enterprise'
-  daily_scans_used: number
-  monthly_scans_used: number
-  last_scan_date: string
-  settings: Record<string, any>
+  total_scans: number
   created_at: string
   updated_at: string
 }
@@ -113,9 +110,7 @@ export const profileService = {
     const { error } = await supabase
       .from('profiles')
       .update({
-        daily_scans_used: profile.daily_scans_used + 1,
-        monthly_scans_used: profile.monthly_scans_used + 1,
-        last_scan_date: today
+        total_scans: (profile.total_scans || 0) + 1
       })
       .eq('id', userId)
     
