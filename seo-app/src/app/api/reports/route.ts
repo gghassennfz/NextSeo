@@ -50,8 +50,13 @@ export async function POST(request: NextRequest) {
       .insert({
         user_id: userId,
         url: analysis.url,
-        analysis_data: analysis,
-        overall_score: analysis.overallScore
+        title: analysis.title,
+        description: analysis.description,
+        seo_score: analysis.seo_score,
+        performance_score: analysis.performance_score,
+        accessibility_score: analysis.accessibility_score,
+        best_practices_score: analysis.best_practices_score,
+        report_data: analysis
       })
       .select()
       .single()

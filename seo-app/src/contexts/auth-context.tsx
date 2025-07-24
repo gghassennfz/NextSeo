@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useEffect, useState } from 'react'
 import { User, Session } from '@supabase/supabase-js'
-import { getSupabaseClient, Profile } from '@/lib/supabase'
+import { getSupabaseClient, Profile, OAuthProvider, profileService, usageLogService } from '@/lib/supabase'
 
 interface AuthContextType {
   user: User | null
@@ -11,8 +11,10 @@ interface AuthContextType {
   loading: boolean
   signIn: (email: string, password: string) => Promise<{ error: any }>
   signUp: (email: string, password: string, fullName?: string) => Promise<{ error: any }>
+  signInWithOAuth: (provider: OAuthProvider) => Promise<{ error: any }>
   signOut: () => Promise<void>
   refreshProfile: () => Promise<void>
+  updateProfile: (updates: Partial<Profile>) => Promise<{ success: boolean; error?: any }>
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -22,8 +24,10 @@ const AuthContext = createContext<AuthContextType>({
   loading: true,
   signIn: async () => ({ error: null }),
   signUp: async () => ({ error: null }),
+  signInWithOAuth: async () => ({ error: null }),
   signOut: async () => {},
   refreshProfile: async () => {},
+  updateProfile: async () => ({ success: false }),
 })
 
 export const useAuth = () => {
@@ -53,18 +57,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   const fetchProfile = async (userId: string) => {
     try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', userId)
-        .single()
-
-      if (error) {
-        console.error('Error fetching profile:', error)
-        return null
-      }
-
-      return data as unknown as Profile
+      const profile = await profileService.getProfile(userId)
+      return profile
     } catch (error) {
       console.error('Error fetching profile:', error)
       return null
@@ -75,6 +69,24 @@ export function AuthProvider({ children }: AuthProviderProps) {
     if (user) {
       const profileData = await fetchProfile(user.id)
       setProfile(profileData)
+    }
+  }
+
+  const updateProfile = async (updates: Partial<Profile>) => {
+    if (!user) {
+      return { success: false, error: 'User not authenticated' }
+    }
+
+    try {
+      const updatedProfile = await profileService.updateProfile(user.id, updates)
+      if (updatedProfile) {
+        setProfile(updatedProfile)
+        return { success: true }
+      }
+      return { success: false, error: 'Failed to update profile' }
+    } catch (error) {
+      console.error('Error updating profile:', error)
+      return { success: false, error }
     }
   }
 
@@ -102,6 +114,14 @@ export function AuthProvider({ children }: AuthProviderProps) {
         if (session?.user) {
           const profileData = await fetchProfile(session.user.id)
           setProfile(profileData)
+          
+          // Log the login event
+          if (event === 'SIGNED_IN') {
+            await usageLogService.logAction('login', session.user.id, {
+              provider: session.user.app_metadata?.provider || 'email',
+              login_time: new Date().toISOString()
+            })
+          }
         } else {
           setProfile(null)
         }
@@ -117,6 +137,16 @@ export function AuthProvider({ children }: AuthProviderProps) {
     const { error } = await supabase.auth.signInWithPassword({
       email,
       password,
+    })
+    return { error }
+  }
+
+  const signInWithOAuth = async (provider: OAuthProvider) => {
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider,
+      options: {
+        redirectTo: `${window.location.origin}/auth/callback`
+      }
     })
     return { error }
   }
@@ -145,8 +175,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
     loading,
     signIn,
     signUp,
+    signInWithOAuth,
     signOut,
     refreshProfile,
+    updateProfile,
   }
 
   // Prevent hydration mismatch by not rendering auth-dependent content until hydrated
@@ -159,8 +191,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
         loading: true,
         signIn,
         signUp,
+        signInWithOAuth,
         signOut,
         refreshProfile,
+        updateProfile,
       }}>
         {children}
       </AuthContext.Provider>

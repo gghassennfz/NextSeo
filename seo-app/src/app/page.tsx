@@ -11,9 +11,11 @@ import { SEOAnalysis } from '@/types/seo'
 import { exportToPDF } from '@/lib/pdf-export'
 import { useAuth } from '@/contexts/auth-context'
 import AIAnalysisPage from './ai-analysis/page'
+import { ProfilePage } from '@/components/profile/profile-page'
+import { scanReportService, profileService } from '@/lib/supabase'
 
 export default function Home() {
-  const [currentPage, setCurrentPage] = useState<'home' | 'dashboard' | 'pricing' | 'ai-analysis'>('home')
+  const [currentPage, setCurrentPage] = useState<'home' | 'dashboard' | 'pricing' | 'ai-analysis' | 'profile'>('home')
   const [isScanning, setIsScanning] = useState(false)
   const [analysis, setAnalysis] = useState<SEOAnalysis | null>(null)
   const [isExporting, setIsExporting] = useState(false)
@@ -44,29 +46,35 @@ export default function Home() {
       // Save report if user is authenticated
       if (user && profile) {
         try {
-          const saveResponse = await fetch('/api/reports', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              analysis: analysisData,
-              userId: user.id
-            }),
+          console.log('Attempting to save scan report for user:', user.id)
+          console.log('Analysis data:', analysisData)
+          
+          // Save to Supabase using scanReportService
+          const savedReport = await scanReportService.createScanReport({
+            user_id: user.id,
+            url: url,
+            title: analysisData.title || `SEO Analysis - ${new URL(url).hostname}`,
+            description: analysisData.description || `SEO analysis for ${url}`,
+            seo_score: analysisData.sections?.seo?.score || analysisData.overallScore || null,
+            performance_score: analysisData.sections?.performance?.score || null,
+            accessibility_score: analysisData.sections?.accessibility?.score || null,
+            best_practices_score: analysisData.sections?.bestPractices?.score || null,
+            report_data: analysisData
           })
 
-          if (!saveResponse.ok) {
-            const saveResult = await saveResponse.json()
-            if (saveResult.upgradeRequired) {
-              alert(saveResult.message)
-              setCurrentPage('pricing')
-            } else {
-              console.error('Failed to save report:', saveResult.error)
-            }
+          if (savedReport) {
+            // Increment scan count
+            await profileService.incrementScanCount(user.id)
+            console.log('Scan report saved successfully:', savedReport.id)
+          } else {
+            console.error('Failed to save scan report - no data returned')
           }
         } catch (saveError) {
           console.error('Error saving report:', saveError)
+          console.log('Failed to save scan report')
         }
+      } else {
+        console.log('User not authenticated, skipping save')
       }
     } catch (error) {
       console.error('Scan error:', error)
@@ -106,6 +114,14 @@ export default function Home() {
         return <PricingPage />
       case 'ai-analysis':
         return <AIAnalysisPage />
+      case 'profile':
+        return user ? (
+          <ProfilePage onClose={() => setCurrentPage('home')} />
+        ) : (
+          <div className="flex items-center justify-center min-h-[400px] text-gray-500">
+            Please sign in to access your profile.
+          </div>
+        )
       case 'home':
       default:
         return (
