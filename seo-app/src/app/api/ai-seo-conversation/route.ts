@@ -1,8 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { GoogleGenerativeAI } from '@google/generative-ai'
+import Anthropic from '@anthropic-ai/sdk'
+import OpenAI from 'openai'
 
-// Initialize Google Gemini AI
-const genAI = new GoogleGenerativeAI(process.env.GOOGLE_GEMINI_API_KEY || '')
+// Initialize AI providers
+const genAI = new GoogleGenerativeAI(process.env.GOOGLE_GENERATIVE_AI_API_KEY || '')
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY || '',
+})
+const anthropic = new Anthropic({
+  apiKey: process.env.ANTHROPIC_API_KEY || '',
+})
 
 interface SEOAnalysis {
   url: string
@@ -35,7 +43,7 @@ interface SEOAnalysis {
   wordCount?: number
 }
 
-function createConversationalPrompt(analysis: SEOAnalysis, url: string): string {
+function createConversationalPrompt(analysis: SEOAnalysis, url: string, userName?: string): string {
   return `You are an enthusiastic and friendly SEO expert who has just finished analyzing a website. You're excited to share your findings and help improve the website's performance.
 
 WEBSITE ANALYZED: ${url}
@@ -63,7 +71,7 @@ ${analysis.recommendations?.slice(0, 5).map(rec => `• ${rec}`).join('\n') || '
 YOUR TASK:
 Write a friendly, conversational opening message as if you're a real SEO consultant who just finished analyzing their website. Be enthusiastic and helpful. Your message should:
 
-1. Greet them warmly and mention you've just analyzed their website
+1. Greet them warmly by name ${userName ? `(their name is ${userName})` : ''} and mention you've just analyzed their website
 2. Give them a quick overview of what you found (both good and areas for improvement)
 3. Highlight 2-3 most important findings in a conversational way
 4. Ask an engaging question to continue the conversation
@@ -75,8 +83,13 @@ Write your response in a natural, conversational style as if you're speaking dir
 }
 
 export async function POST(request: NextRequest) {
+  let analysis, url, userName
+  
   try {
-    const { analysis, url } = await request.json()
+    const requestData = await request.json()
+    analysis = requestData.analysis
+    url = requestData.url
+    userName = requestData.userName
 
     if (!analysis || !url) {
       return NextResponse.json(
@@ -85,29 +98,76 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Check if Gemini API key is configured
-    if (!process.env.GOOGLE_GEMINI_API_KEY) {
-      return NextResponse.json({
-        response: `Hey there! 👋 I've just finished analyzing ${url} and I'm excited to share what I found! 
+    // Try to get AI response with fallback system
+    let aiResponse: string
+    let usedProvider: string
+
+    try {
+      // Try Gemini first
+      console.log('Attempting Gemini AI for conversation...')
+      const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' })
+      const prompt = createConversationalPrompt(analysis, url, userName)
+      const result = await model.generateContent(prompt)
+      const response = result.response
+      aiResponse = response.text()
+      usedProvider = 'Gemini'
+      console.log('✅ Gemini AI conversation successful')
+    } catch (geminiError) {
+      console.log('❌ Gemini AI failed for conversation, trying OpenAI...', geminiError)
+      
+      try {
+        // Fallback to OpenAI
+        const prompt = createConversationalPrompt(analysis, url, userName)
+        const openaiResponse = await openai.chat.completions.create({
+          model: 'gpt-3.5-turbo',
+          messages: [
+            {
+              role: 'user',
+              content: prompt
+            }
+          ],
+          max_tokens: 1000,
+          temperature: 0.7
+        })
+        
+        aiResponse = openaiResponse.choices[0]?.message?.content || ''
+        usedProvider = 'OpenAI'
+        console.log('✅ OpenAI conversation successful')
+      } catch (openaiError) {
+        console.log('❌ OpenAI failed for conversation, trying Claude...', openaiError)
+        
+        try {
+          // Final fallback to Claude Sonnet
+          const prompt = createConversationalPrompt(analysis, url, userName)
+          const claudeResponse = await anthropic.messages.create({
+            model: 'claude-3-5-sonnet-20241022',
+            max_tokens: 1000,
+            messages: [
+              {
+                role: 'user',
+                content: prompt
+              }
+            ]
+          })
+          
+          aiResponse = claudeResponse.content[0].type === 'text' ? claudeResponse.content[0].text : ''
+          usedProvider = 'Claude Sonnet'
+          console.log('✅ Claude Sonnet conversation successful')
+        } catch (claudeError) {
+          console.error('❌ All three AI providers failed for conversation:', { geminiError, openaiError, claudeError })
+          // Use fallback response
+          return NextResponse.json({
+            response: `Hey ${userName || 'there'}! 👋 I've just finished analyzing ${url} and I'm excited to share what I found! 
 
 I discovered ${analysis.issues?.length || 0} areas where we can improve your SEO performance. ${analysis.issues?.length > 0 ? `The main issues I spotted are ${analysis.issues.slice(0, 2).join(' and ')}.` : 'Your site is looking pretty good overall!'}
 
 ${analysis.recommendations?.length > 0 ? `I've got ${analysis.recommendations.length} specific recommendations that could really boost your search rankings.` : ''}
 
 What aspect of your website's SEO would you like to dive into first? I'm here to help you improve your search visibility! 🚀`
-      })
+          })
+        }
+      }
     }
-
-    // Get generative model
-    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' })
-
-    // Create conversational prompt
-    const prompt = createConversationalPrompt(analysis, url)
-
-    // Generate AI response
-    const result = await model.generateContent(prompt)
-    const response = result.response
-    const aiResponse = response.text()
 
     // Ensure we have a good response
     if (!aiResponse || aiResponse.trim().length === 0) {
@@ -123,7 +183,8 @@ What would you like to know about your website's SEO performance? I'm here to he
     }
 
     return NextResponse.json({
-      response: aiResponse.trim()
+      response: aiResponse.trim(),
+      provider: usedProvider
     })
 
   } catch (error) {
@@ -133,14 +194,14 @@ What would you like to know about your website's SEO performance? I'm here to he
     if (error instanceof Error) {
       if (error.message.includes('API_KEY')) {
         return NextResponse.json({
-          response: `Hey! 👋 I've analyzed your website and found some great opportunities to improve your SEO! Unfortunately, I'm having a small technical issue right now, but I can tell you that I found ${analysis.issues?.length || 0} areas for improvement. What specific aspect of your SEO would you like to discuss?`
+          response: `Hey ${userName || 'there'}! 👋 I've analyzed your website and found some great opportunities to improve your SEO! Unfortunately, I'm having a small technical issue right now, but I can tell you that I found ${analysis?.issues?.length || 0} areas for improvement. What specific aspect of your SEO would you like to discuss?`
         })
       }
     }
 
     // Fallback conversational response
     return NextResponse.json({
-      response: `Hello! 👋 I've just completed analyzing your website and I'm excited to help you improve your SEO performance! 
+      response: `Hello ${userName || 'there'}! 👋 I've just completed analyzing your website and I'm excited to help you improve your SEO performance! 
 
 I discovered several opportunities to boost your search rankings. Would you like to start by discussing your page titles, content optimization, or technical SEO elements? I'm here to guide you through everything! 🚀`
     })

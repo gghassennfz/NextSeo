@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge'
 // import { ScrollArea } from '@/components/ui/scroll-area' // Using simple div for now
 import { Loader2, Send, Globe, Bot, User, Sparkles, Brain, MessageCircle, Zap } from 'lucide-react'
+import { useAuth } from '@/contexts/auth-context'
 
 interface ChatMessage {
   id: string
@@ -29,6 +30,7 @@ interface SEOAnalysis {
 }
 
 export default function AIAnalysisPage() {
+  const { user, profile } = useAuth()
   const [url, setUrl] = useState('')
   const [isAnalyzing, setIsAnalyzing] = useState(false)
   const [isScanned, setIsScanned] = useState(false)
@@ -76,6 +78,7 @@ export default function AIAnalysisPage() {
         body: JSON.stringify({
           analysis: data.analysis,
           url: url,
+          userName: profile?.full_name || user?.user_metadata?.full_name || 'there',
         }),
       })
 

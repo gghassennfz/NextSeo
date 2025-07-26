@@ -15,40 +15,123 @@ export function UserDashboard() {
   const [reports, setReports] = useState<ScanReport[]>([])
   const [filteredReports, setFilteredReports] = useState<ScanReport[]>([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
   const [filter, setFilter] = useState<'all' | 'excellent' | 'good' | 'poor'>('all')
   const { user, profile } = useAuth()
   const supabase = createSupabaseClient()
+  
+  // Add abort controller for request cancellation
+  const abortControllerRef = React.useRef<AbortController | null>(null)
 
   useEffect(() => {
-    if (user) {
-      fetchReports()
+    if (user?.id) {
+      // Small delay to avoid StrictMode double-rendering issues
+      const timeoutId = setTimeout(() => {
+        fetchReports()
+      }, 100)
+      
+      return () => {
+        clearTimeout(timeoutId)
+        // Cleanup on unmount or dependency change  
+        if (abortControllerRef.current) {
+          abortControllerRef.current.abort()
+          abortControllerRef.current = null
+        }
+      }
     }
-  }, [user])
+  }, [user?.id])
 
   useEffect(() => {
     filterReports()
   }, [reports, searchQuery, filter])
 
-  const fetchReports = async () => {
+  const fetchReports = async (retryCount = 0) => {
     try {
-      const { data, error } = await supabase
-        .from('scan_reports')
-        .select('*')
-        .eq('user_id', user?.id)
-        .order('created_at', { ascending: false })
-
-      if (error) {
-        console.error('Error fetching reports:', error)
+      // Ensure user is authenticated
+      if (!user?.id) {
+        console.log('No authenticated user, skipping report fetch')
+        setLoading(false)
         return
       }
 
-      setReports(data || [])
-    } catch (error) {
+      // Cancel any existing request
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort()
+      }
+      
+      abortControllerRef.current = new AbortController()
+      
+      console.log('Fetching reports...', { userId: user.id, retry: retryCount })
+      
+      // Progressive loading strategy - start small and get smaller on retries
+      const limit = retryCount === 0 ? 10 : retryCount === 1 ? 5 : 3
+      const timeout = retryCount === 0 ? 15000 : retryCount === 1 ? 10000 : 8000
+      
+      const timeoutId = setTimeout(() => {
+        abortControllerRef.current?.abort()
+      }, timeout)
+      
+      // Optimized query with full type compatibility
+      const { data, error } = await supabase
+        .from('scan_reports')
+        .select('id, user_id, url, title, description, seo_score, performance_score, accessibility_score, best_practices_score, report_data, created_at')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(limit)
+        .abortSignal(abortControllerRef.current.signal)
+      
+      clearTimeout(timeoutId)
+
+      if (error) {
+        console.error('Error fetching reports:', error)
+        throw error
+      }
+
+      console.log(`Reports fetched successfully: ${data?.length || 0} reports (limit: ${limit})`)
+      setReports((data || []) as ScanReport[])
+      setError(null)
+      
+    } catch (error: any) {
+      // Don't retry if request was aborted (common in React StrictMode)
+      if (error.name === 'AbortError' || error.message?.includes('AbortError') || error.code === '20') {
+        // Silent handling - no console logs for abort errors
+        return
+      }
+      
       console.error('Error fetching reports:', error)
+      
+      if (retryCount < 2) {
+        console.log(`Retrying fetch reports (attempt ${retryCount + 1}/3) with smaller batch...`)
+        setTimeout(() => {
+          fetchReports(retryCount + 1)
+        }, Math.pow(2, retryCount) * 1000) // Exponential backoff
+        return
+      }
+      
+      // Final fallback with helpful error message
+      const errorMessage = error.message?.includes('timeout')
+        ? 'Database query timeout detected. This may indicate a large dataset or slow database connection. Try refreshing or contact support if this persists.'
+        : `Failed to load reports: ${error.message || 'Unknown error'}`
+      
+      setError(errorMessage)
+      setReports([])
+      
     } finally {
       setLoading(false)
+      abortControllerRef.current = null
     }
+  }
+
+  // Helper function to calculate overall score from available scores
+  const calculateOverallScore = (report: ScanReport) => {
+    const scores: number[] = []
+    if (report.seo_score !== null && report.seo_score !== undefined) scores.push(report.seo_score)
+    if (report.performance_score !== null && report.performance_score !== undefined) scores.push(report.performance_score)
+    if (report.accessibility_score !== null && report.accessibility_score !== undefined) scores.push(report.accessibility_score)
+    if (report.best_practices_score !== null && report.best_practices_score !== undefined) scores.push(report.best_practices_score)
+    
+    return scores.length > 0 ? Math.round(scores.reduce((sum, score) => sum + score, 0) / scores.length) : 0
   }
 
   const filterReports = () => {
@@ -64,7 +147,7 @@ export function UserDashboard() {
     // Apply score filter
     if (filter !== 'all') {
       filtered = filtered.filter(report => {
-        const score = report.overall_score
+        const score = calculateOverallScore(report)
         switch (filter) {
           case 'excellent':
             return score >= 80
@@ -118,8 +201,8 @@ export function UserDashboard() {
 
   const stats = {
     totalScans: reports.length,
-    averageScore: reports.length > 0 ? Math.round(reports.reduce((sum, r) => sum + r.overall_score, 0) / reports.length) : 0,
-    excellentSites: reports.filter(r => r.overall_score >= 80).length,
+    averageScore: reports.length > 0 ? Math.round(reports.reduce((sum, r) => sum + calculateOverallScore(r), 0) / reports.length) : 0,
+    excellentSites: reports.filter(r => calculateOverallScore(r) >= 80).length,
     scansThisMonth: reports.filter(r => {
       const reportDate = new Date(r.created_at)
       const now = new Date()
@@ -259,36 +342,87 @@ export function UserDashboard() {
           </div>
         </motion.div>
 
-        {/* Reports List */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3 }}
-          className="space-y-4"
-        >
-          {filteredReports.length === 0 ? (
-            <Card>
-              <CardContent className="p-12 text-center">
-                <BarChart3 className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                  {reports.length === 0 ? 'No SEO scans yet' : 'No reports match your filters'}
-                </h3>
-                <p className="text-gray-600 mb-6">
-                  {reports.length === 0 
-                    ? 'Start analyzing websites to see your results here.'
-                    : 'Try adjusting your search or filter criteria.'
-                  }
-                </p>
-                {reports.length === 0 && (
-                  <Button className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700">
-                    Run Your First Scan
+        {/* Loading State */}
+        {loading && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="flex items-center justify-center py-12"
+          >
+            <div className="flex flex-col items-center space-y-4">
+              <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+              <p className="text-gray-600">Loading your SEO reports...</p>
+            </div>
+          </motion.div>
+        )}
+        
+        {/* Error State */}
+        {error && !loading && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mb-6"
+          >
+            <Card className="border-red-200 bg-red-50">
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-3">
+                    <div className="w-8 h-8 bg-red-100 rounded-full flex items-center justify-center">
+                      <svg className="w-4 h-4 text-red-600" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                      </svg>
+                    </div>
+                    <div>
+                      <h3 className="text-sm font-medium text-red-800">Failed to load reports</h3>
+                      <p className="text-sm text-red-600">{error}</p>
+                    </div>
+                  </div>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={() => fetchReports()}
+                    className="border-red-300 text-red-700 hover:bg-red-50"
+                  >
+                    Try Again
                   </Button>
-                )}
+                </div>
               </CardContent>
             </Card>
+          </motion.div>
+        )}
+
+        {/* Reports List */}
+        {!loading && !error && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3 }}
+            className="space-y-4"
+          >
+            {filteredReports.length === 0 ? (
+              <Card>
+                <CardContent className="p-12 text-center">
+                  <BarChart3 className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                    {reports.length === 0 ? 'No SEO scans yet' : 'No reports match your filters'}
+                  </h3>
+                  <p className="text-gray-600 mb-6">
+                    {reports.length === 0 
+                      ? 'Start analyzing websites to see your results here.'
+                      : 'Try adjusting your search or filter criteria.'
+                    }
+                  </p>
+                  {reports.length === 0 && (
+                    <Button className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700">
+                      Run Your First Scan
+                    </Button>
+                  )}
+                </CardContent>
+              </Card>
           ) : (
             filteredReports.map((report, index) => {
-              const scoreStatus = getScoreStatus(report.overall_score)
+              const overallScore = calculateOverallScore(report)
+              const scoreStatus = getScoreStatus(overallScore)
               
               return (
                 <motion.div
@@ -302,7 +436,7 @@ export function UserDashboard() {
                       <div className="flex items-center justify-between">
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center space-x-3 mb-2">
-                            <ScoreCircle score={report.overall_score} size="sm" />
+                            <ScoreCircle score={overallScore} size="sm" />
                             <div>
                               <h3 className="text-lg font-semibold text-gray-900 truncate">
                                 {report.url}
@@ -355,7 +489,8 @@ export function UserDashboard() {
               )
             })
           )}
-        </motion.div>
+          </motion.div>
+        )}
 
         {/* Subscription Upsell for Free Users */}
         {profile?.subscription_tier === 'free' && reports.length > 0 && (

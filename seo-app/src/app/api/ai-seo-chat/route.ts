@@ -1,8 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { GoogleGenerativeAI } from '@google/generative-ai'
+import Anthropic from '@anthropic-ai/sdk'
+import OpenAI from 'openai'
 
-// Initialize Google Gemini AI
-const genAI = new GoogleGenerativeAI(process.env.GOOGLE_GEMINI_API_KEY || '')
+// Initialize AI providers
+const genAI = new GoogleGenerativeAI(process.env.GOOGLE_GENERATIVE_AI_API_KEY || '')
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY || '',
+})
+const anthropic = new Anthropic({
+  apiKey: process.env.ANTHROPIC_API_KEY || '',
+})
 
 interface SEOAnalysis {
   url: string
@@ -81,48 +89,51 @@ function isOffTopicQuestion(message: string): boolean {
 }
 
 function createSystemPrompt(analysis: SEOAnalysis, url: string): string {
-  return `You are an expert SEO consultant and digital marketing specialist. You have just analyzed the website "${url}" and have comprehensive data about its current SEO performance.
+  return `
+You are a senior SEO expert and digital growth strategist hired to assess and optimize the website "${url}". You just completed a full SEO audit and must now share insightful, actionable, and prioritized recommendations to help it perform better in search rankings.
 
-WEBSITE ANALYSIS DATA:
-- URL: ${url}
-- Title: ${analysis.title || 'Not found'}
-- Meta Description: ${analysis.description || 'Not found'}
-- H1 Tags: ${analysis.h1Tags?.join(', ') || 'None found'}
-- H2 Tags: ${analysis.h2Tags?.slice(0, 5).join(', ') || 'None found'}${analysis.h2Tags && analysis.h2Tags.length > 5 ? ` (and ${analysis.h2Tags.length - 5} more)` : ''}
-- Images: ${analysis.images?.length || 0} total (${analysis.images?.filter(img => !img.alt).length || 0} without alt text)
-- Internal Links: ${analysis.links?.filter(link => link.type === 'internal').length || 0}
-- External Links: ${analysis.links?.filter(link => link.type === 'external').length || 0}
-- Word Count: ${analysis.wordCount || 'Unknown'}
+🎯 PRIORITY INSIGHTS (What matters most right now):
+- ⚠️ Major SEO issues: ${analysis.issues?.slice(0, 3).map(i => `• ${i}`).join('\n') || 'None detected'}
+- 🧠 Most impactful recommendations: ${analysis.recommendations?.slice(0, 3).map(r => `• ${r}`).join('\n') || 'No urgent suggestions'}
+
+📊 TECHNICAL SEO SNAPSHOT:
 - Page Load Time: ${analysis.loadTime ? `${analysis.loadTime}ms` : 'Unknown'}
 - Canonical URL: ${analysis.canonicalUrl || 'Not set'}
 - Robots Meta: ${analysis.robots || 'Not set'}
-- Open Graph: ${analysis.openGraph?.title ? 'Configured' : 'Missing or incomplete'}
-- Twitter Cards: ${analysis.twitterCard?.title ? 'Configured' : 'Missing or incomplete'}
-- Structured Data: ${analysis.structuredData?.length || 0} items found
+- Structured Data: ${analysis.structuredData?.length || 0} item(s)
+- Open Graph: ${analysis.openGraph?.title ? '✅ Configured' : '❌ Missing'}
+- Twitter Cards: ${analysis.twitterCard?.title ? '✅ Configured' : '❌ Missing'}
 
-IDENTIFIED ISSUES:
-${analysis.issues?.map(issue => `- ${issue}`).join('\n') || 'No major issues detected'}
+🔎 CONTENT & ON-PAGE SEO:
+- Title: ${analysis.title || '❌ Not found'}
+- Meta Description: ${analysis.description || '❌ Not found'}
+- Word Count: ${analysis.wordCount || 'Unknown'}
+- H1: ${analysis.h1Tags?.join(', ') || '❌ None found'}
+- Top H2s: ${analysis.h2Tags?.slice(0, 5).join(', ') || 'None found'}${analysis.h2Tags && analysis.h2Tags.length > 5 ? ` (+${analysis.h2Tags.length - 5} more)` : ''}
+- Images: ${analysis.images?.length || 0} total • ${analysis.images?.filter(img => !img.alt).length || 0} missing alt text
 
-RECOMMENDATIONS PREPARED:
-${analysis.recommendations?.map(rec => `- ${rec}`).join('\n') || 'No specific recommendations at this time'}
+🔗 LINK STRUCTURE:
+- Internal Links: ${analysis.links?.filter(link => link.type === 'internal').length || 0}
+- External Links: ${analysis.links?.filter(link => link.type === 'external').length || 0}
 
-YOUR ROLE:
-You are a dedicated SEO consultant focused ONLY on helping improve this specific website's search engine optimization and performance. You should:
+📌 YOUR ROLE:
+You are to provide:
+1. Smart, prioritized SEO improvements based on the data
+2. Explanations that help users understand *why* the change matters
+3. Step-by-step instructions if implementation is requested
+4. A strong focus on: SEO, performance, user engagement, and digital growth
+5. Help with website technology, coding errors, and IT-related questions
 
-1. Provide actionable, specific advice based on the analyzed data
-2. Explain SEO concepts in clear, understandable terms
-3. Prioritize recommendations based on potential impact
-4. Give step-by-step implementation guidance when asked
-5. Stay focused on SEO, website performance, content optimization, and digital marketing topics
+🚫 IMPORTANT GUIDELINES:
+- Be specific, data-driven, and helpful in all responses
+- Avoid suggesting actions not supported by the data
+- You can discuss technology, website errors, coding, and IT topics related to web development
+- Focus on practical, actionable advice that delivers results
 
-IMPORTANT RESTRICTIONS:
-- ONLY answer questions related to SEO, website optimization, digital marketing, and web performance
-- If asked about topics unrelated to SEO or this website analysis, respond with: "I'm here to help you improve your website's SEO and performance. Please ask SEO-related questions about your scanned website."
-- Base your advice on the actual data from the analyzed website
-- Be specific and actionable in your recommendations
-- Always explain the "why" behind your suggestions
+Use your expert judgment to help this site rank better. Be concise, impactful, and insightful. Focus on results.
 
-Remember: You are a professional SEO consultant helping to improve this specific website's search rankings and performance.`
+Begin your analysis now.
+`;
 }
 
 export async function POST(request: NextRequest) {
@@ -136,23 +147,11 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Check if the question is off-topic
-    if (isOffTopicQuestion(message)) {
-      return NextResponse.json({
-        response: "I'm here to help you improve your website's SEO and performance. Please ask SEO-related questions about your scanned website."
-      })
-    }
+    // Allow broader topics including technology, website errors, and IT-related questions
+    // No topic restrictions - users can discuss SEO, technology, coding, and web development
 
-    // Check if Gemini API key is configured
-    if (!process.env.GOOGLE_GEMINI_API_KEY) {
-      return NextResponse.json(
-        { error: 'AI service not configured. Please set up Google Gemini API key.' },
-        { status: 500 }
-      )
-    }
-
-    // Get generative model
-    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' })
+    // This check is no longer needed - the triple AI provider system handles missing keys gracefully
+    // AI providers will try Gemini → OpenAI → Claude automatically
 
     // Create system prompt with analysis data
     const systemPrompt = createSystemPrompt(analysis, url)
@@ -164,10 +163,64 @@ USER QUESTION: ${message}
 
 Please provide a helpful, specific, and actionable response based on the website analysis data. Focus on SEO improvements and be as specific as possible with your recommendations.`
 
-    // Generate AI response
-    const result = await model.generateContent(fullPrompt)
-    const response = result.response
-    const aiResponse = response.text()
+    // Try to get AI response with fallback system
+    let aiResponse: string
+    let usedProvider: string
+
+    try {
+      // Try Gemini first
+      console.log('Attempting Gemini AI...')
+      const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' })
+      const result = await model.generateContent(fullPrompt)
+      const response = result.response
+      aiResponse = response.text()
+      usedProvider = 'Gemini'
+      console.log('✅ Gemini AI responded successfully')
+    } catch (geminiError) {
+      console.log('❌ Gemini AI failed, trying OpenAI...', geminiError)
+      
+      try {
+        // Fallback to OpenAI
+        const openaiResponse = await openai.chat.completions.create({
+          model: 'gpt-3.5-turbo',
+          messages: [
+            {
+              role: 'user',
+              content: fullPrompt
+            }
+          ],
+          max_tokens: 1000,
+          temperature: 0.7
+        })
+        
+        aiResponse = openaiResponse.choices[0]?.message?.content || ''
+        usedProvider = 'OpenAI'
+        console.log('✅ OpenAI responded successfully')
+      } catch (openaiError) {
+        console.log('❌ OpenAI failed, trying Claude Sonnet...', openaiError)
+        
+        try {
+          // Final fallback to Claude Sonnet
+          const claudeResponse = await anthropic.messages.create({
+            model: 'claude-3-5-sonnet-20241022',
+            max_tokens: 1000,
+            messages: [
+              {
+                role: 'user',
+                content: fullPrompt
+              }
+            ]
+          })
+          
+          aiResponse = claudeResponse.content[0].type === 'text' ? claudeResponse.content[0].text : ''
+          usedProvider = 'Claude Sonnet'
+          console.log('✅ Claude Sonnet responded successfully')
+        } catch (claudeError) {
+          console.error('❌ All three AI providers failed:', { geminiError, openaiError, claudeError })
+          throw new Error('All AI providers are currently unavailable')
+        }
+      }
+    }
 
     // Ensure the response is focused on SEO
     if (!aiResponse || aiResponse.trim().length === 0) {
@@ -177,30 +230,37 @@ Please provide a helpful, specific, and actionable response based on the website
     }
 
     return NextResponse.json({
-      response: aiResponse.trim()
+      response: aiResponse.trim(),
+      provider: usedProvider // Optional: let client know which AI responded
     })
 
   } catch (error) {
     console.error('AI Chat Error:', error)
 
-    // Handle specific Google AI errors
+    // Handle specific AI provider errors
     if (error instanceof Error) {
       if (error.message.includes('API_KEY')) {
         return NextResponse.json(
-          { error: 'Invalid or missing Google Gemini API key' },
+          { error: 'Invalid or missing AI API keys for both providers' },
           { status: 401 }
         )
       }
-      if (error.message.includes('RATE_LIMIT')) {
+      if (error.message.includes('RATE_LIMIT') || error.message.includes('overloaded')) {
         return NextResponse.json(
-          { error: 'API rate limit exceeded. Please try again in a moment.' },
-          { status: 429 }
+          { error: 'Both AI services are currently overloaded. Please try again in a few minutes.' },
+          { status: 503 }
         )
       }
       if (error.message.includes('SAFETY')) {
         return NextResponse.json({
           response: "I understand you're asking about SEO. Could you please rephrase your question so I can provide the best SEO advice for your website?"
         })
+      }
+      if (error.message.includes('All AI providers are currently unavailable')) {
+        return NextResponse.json(
+          { error: 'All AI services (Gemini, OpenAI, and Claude) are currently unavailable. Please try again later.' },
+          { status: 503 }
+        )
       }
     }
 

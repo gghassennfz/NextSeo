@@ -15,7 +15,7 @@ interface HeroSectionProps {
 }
 
 export function HeroSection({ onScan, isScanning = false }: HeroSectionProps) {
-  const [url, setUrl] = useState("https://www.remorquagebalkis.tn")
+  const [url, setUrl] = useState("")
   const [error, setError] = useState("")
 
   const handleSubmit = (e: React.FormEvent) => {

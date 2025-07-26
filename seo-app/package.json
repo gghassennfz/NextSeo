@@ -9,7 +9,9 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.57.0",
     "@google/generative-ai": "^0.24.1",
+    "@mozilla/readability": "^0.6.0",
     "@radix-ui/react-accordion": "^1.1.2",
     "@radix-ui/react-avatar": "^1.1.10",
     "@radix-ui/react-collapsible": "^1.0.3",
@@ -29,9 +31,12 @@
     "clsx": "^2.0.0",
     "framer-motion": "^12.0.0",
     "html2canvas": "^1.4.1",
+    "jsdom": "^26.1.0",
     "jspdf": "^3.0.1",
     "lucide-react": "^0.525.0",
     "next": "15.3.5",
+    "openai": "^5.10.2",
+    "puppeteer": "^24.15.0",
     "react": "19.0.0",
     "react-dom": "19.0.0",
     "stripe": "^14.9.0",

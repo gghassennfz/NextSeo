@@ -2,9 +2,13 @@ import * as cheerio from "cheerio"
 import axios from "axios"
 import { SEOAnalysis, MetaAnalysis, PageQualityAnalysis, LinkStructureAnalysis, PageStructureAnalysis, PerformanceAnalysis, CrawlabilityAnalysis, ExternalFactorsAnalysis } from "@/types/seo"
 import { scoreRange } from "./utils"
+import { ContentExtractor } from "./content-extractor"
+import { PageSpeedAnalyzer } from "./pagespeed-analyzer"
+import { RobotsSitemapAnalyzer } from "./robots-sitemap-analyzer"
+import { DomainAuthorityAnalyzer } from "./domain-authority-analyzer"
 
 export class SEOAnalyzer {
-  private $: cheerio.CheerioAPI
+  private $: cheerio.Root
   private html: string
   private url: string
   private startTime: number
@@ -30,6 +34,7 @@ export class SEOAnalyzer {
       const analyzer = new SEOAnalyzer(response.data, url)
       const responseTime = Date.now() - startTime
 
+      // 🔧 REVERTED: Using original analysis to prevent crashes
       const analysis: SEOAnalysis = {
         url,
         timestamp: new Date().toISOString(),
@@ -92,6 +97,50 @@ export class SEOAnalyzer {
         title: this.$("head > title").length > 1,
         description: this.$('meta[name="description"]').length > 1
       }
+    }
+  }
+
+  private analyzePageQualityWithAccurateContent(contentAnalysis: any): PageQualityAnalysis {
+    // 🚀 NEW: Use accurate main content word count instead of total text
+    const wordCount = contentAnalysis.mainContentWordCount
+    const readingTime = contentAnalysis.readingTime
+    const contentRatio = contentAnalysis.contentRatio
+    
+    const images = this.$("img")
+    const imageCount = images.length
+    const imagesWithAlt = images.filter("[alt]").length
+    const imagesWithoutAlt = imageCount - imagesWithAlt
+
+    const headingsCount = {
+      h1: this.$("h1").length,
+      h2: this.$("h2").length,
+      h3: this.$("h3").length,
+      h4: this.$("h4").length,
+      h5: this.$("h5").length,
+      h6: this.$("h6").length
+    }
+
+    const issues: string[] = []
+    if (wordCount < 300) issues.push("Content too short (< 300 words)")
+    if (headingsCount.h1 === 0) issues.push("Missing H1 tag")
+    if (headingsCount.h1 > 1) issues.push("Multiple H1 tags found")
+    if (imagesWithoutAlt > 0) issues.push(`${imagesWithoutAlt} images missing alt text`)
+    if (contentRatio < 30) issues.push("Low content-to-total ratio (too much boilerplate)")
+
+    const score = Math.max(0, 100 - (issues.length * 15))
+
+    return {
+      score,
+      wordCount, // 🚀 Now accurate main content only
+      readingTime, // 🚀 Now accurate based on main content
+      contentRatio, // 🚀 New metric showing content quality
+      images: {
+        total: imageCount,
+        withAlt: imagesWithAlt,
+        withoutAlt: imagesWithoutAlt
+      },
+      headings: headingsCount,
+      issues
     }
   }
 
@@ -314,6 +363,87 @@ export class SEOAnalyzer {
       },
       issues
     }
+  }
+
+  // 🚀 NEW: Convert PageSpeed API data to our PerformanceAnalysis format
+  private convertPageSpeedToPerformanceAnalysis(pageSpeedAnalysis: any): PerformanceAnalysis {
+    if (!pageSpeedAnalysis.isSuccess) {
+      // Fallback to basic analysis if PageSpeed API failed
+      return this.analyzePerformance(3000, 1000000) // Use reasonable defaults
+    }
+
+    const score = pageSpeedAnalysis.performanceScore
+    const issues: string[] = []
+    
+    // Convert PageSpeed issues to our format
+    pageSpeedAnalysis.opportunities.forEach((opp: any) => {
+      if (opp.impact === 'high') {
+        issues.push(`${opp.title}: ${opp.potentialSavings} potential savings`)
+      }
+    })
+
+    pageSpeedAnalysis.diagnostics.forEach((diag: any) => {
+      if (diag.impact === 'high') {
+        issues.push(diag.title)
+      }
+    })
+
+    return {
+      score,
+      loadTime: pageSpeedAnalysis.loadTime,
+      pageSize: pageSpeedAnalysis.totalPageSize,
+      requests: pageSpeedAnalysis.totalRequestCount,
+      coreWebVitals: {
+        lcp: pageSpeedAnalysis.coreWebVitals.lcp.value,
+        fid: pageSpeedAnalysis.coreWebVitals.fid.value,
+        cls: pageSpeedAnalysis.coreWebVitals.cls.value,
+        fcp: pageSpeedAnalysis.coreWebVitals.fcp.value
+      },
+      issues
+    }
+  }
+
+  // 🚀 NEW: Convert our enhanced crawlability analysis to legacy format
+  private convertCrawlabilityAnalysis(crawlabilityAnalysis: any): CrawlabilityAnalysis {
+    return {
+      score: crawlabilityAnalysis.score,
+      robotsTxt: {
+        exists: crawlabilityAnalysis.robots.exists,
+        content: crawlabilityAnalysis.robots.content,
+        blocks: crawlabilityAnalysis.robots.blocks
+      },
+      sitemap: {
+        exists: crawlabilityAnalysis.sitemaps.length > 0,
+        url: crawlabilityAnalysis.sitemaps[0]?.url || undefined
+      },
+      canonical: crawlabilityAnalysis.canonical,
+      langAttribute: crawlabilityAnalysis.langAttribute,
+      issues: crawlabilityAnalysis.issues
+    }
+  }
+
+  // 🚀 NEW: Enhanced external factors analysis with domain authority
+  private analyzeExternalFactorsWithDomainAuthority(domainAuthorityAnalysis: any): ExternalFactorsAnalysis {
+    const baseAnalysis = this.analyzeExternalFactors()
+    
+    // Add domain authority data
+    baseAnalysis.domainAuthority = {
+      estimated: domainAuthorityAnalysis.estimatedDA,
+      domainAge: domainAuthorityAnalysis.domainAge,
+      trustFactors: domainAuthorityAnalysis.trustFactors,
+      reliability: domainAuthorityAnalysis.reliability
+    }
+    
+    // Add backlink estimation
+    baseAnalysis.backlinks = {
+      estimated: domainAuthorityAnalysis.backlinks.estimated,
+      socialSignals: domainAuthorityAnalysis.backlinks.socialSignals
+    }
+    
+    // Update score with new factors
+    baseAnalysis.score = Math.min(100, baseAnalysis.score + (domainAuthorityAnalysis.estimatedDA * 0.3))
+    
+    return baseAnalysis
   }
 
   private analyzeExternalFactors(): ExternalFactorsAnalysis {
