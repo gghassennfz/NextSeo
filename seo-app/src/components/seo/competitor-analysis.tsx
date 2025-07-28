@@ -39,67 +39,47 @@ interface Competitor {
 export function CompetitorAnalysis({ analysis, url }: CompetitorAnalysisProps) {
   const [activeView, setActiveView] = useState<'overview' | 'keywords' | 'content' | 'backlinks'>('overview')
 
-  // Mock competitor data (in real app, this would come from competitor analysis APIs)
-  const competitors: Competitor[] = [
-    {
-      domain: 'competitor1.com',
-      score: 85,
-      traffic: '2.5M',
-      keywords: 12543,
-      backlinks: 8932,
-      contentGap: 23,
-      trend: 'up'
-    },
-    {
-      domain: 'competitor2.com', 
-      score: 78,
-      traffic: '1.8M',
-      keywords: 9876,
-      backlinks: 6543,
-      contentGap: 31,
-      trend: 'down'
-    },
-    {
-      domain: 'competitor3.com',
-      score: 92,
-      traffic: '3.2M', 
-      keywords: 15678,
-      backlinks: 12456,
-      contentGap: 18,
-      trend: 'up'
+  // 🚀 REAL competitor analysis - requires premium APIs (SEMrush, Ahrefs, etc.)
+  const generateBasicCompetitorInsights = () => {
+    // Extract domain from URL for basic analysis
+    const domain = new URL(url).hostname
+    const isHttps = url.startsWith('https://')
+    const hasWww = domain.startsWith('www.')
+    
+    // Basic competitive insights without external APIs
+    return {
+      yourSite: {
+        domain: domain,
+        score: analysis.overallScore,
+        https: isHttps,
+        structured: analysis.sections.externalFactors.schemaMarkup.exists,
+        performance: analysis.sections.performance.score,
+      },
+      insights: [
+        `Your site scores ${analysis.overallScore}/100 for SEO`,
+        isHttps ? 'HTTPS enabled ✓' : 'Consider enabling HTTPS for better security',
+        analysis.sections.externalFactors.schemaMarkup.exists ? 'Structured data found ✓' : 'Consider adding structured data',
+        analysis.sections.performance.score > 80 ? 'Good performance ✓' : 'Performance could be improved',
+      ],
+      recommendations: [
+        'Enable comprehensive competitor analysis with premium APIs',
+        'Track keyword rankings vs competitors',
+        'Monitor competitor backlink strategies',
+        'Analyze competitor content gaps',
+      ]
     }
-  ]
+  }
+  
+  const competitorData = generateBasicCompetitorInsights()
+  
+  // Show disclaimer for premium features instead of fake data
+  const competitors: Competitor[] = []
 
-  const keywordGaps = [
-    { keyword: 'seo analysis', difficulty: 65, volume: 8100, yourRank: null, competitorRank: 3 },
-    { keyword: 'website audit', difficulty: 58, volume: 5400, yourRank: 15, competitorRank: 2 },
-    { keyword: 'seo tools', difficulty: 72, volume: 12100, yourRank: null, competitorRank: 1 },
-    { keyword: 'site optimization', difficulty: 51, volume: 3300, yourRank: 8, competitorRank: 4 },
-  ]
+  // Real keyword analysis requires premium APIs (SEMrush, Ahrefs, Google Search Console)
+  const keywordGaps: any[] = []
 
-  const contentOpportunities = [
-    {
-      topic: 'Technical SEO Guide',
-      competitorPages: 3,
-      avgWords: 2800,
-      socialShares: 1250,
-      backlinks: 45
-    },
-    {
-      topic: 'Local SEO Strategies', 
-      competitorPages: 2,
-      avgWords: 3200,
-      socialShares: 890,
-      backlinks: 32
-    },
-    {
-      topic: 'Mobile SEO Best Practices',
-      competitorPages: 4,
-      avgWords: 2400,
-      socialShares: 670,
-      backlinks: 28
-    }
-  ]
+  // Real content opportunity analysis requires premium content APIs
+  const contentOpportunities: any[] = []
 
   const getScoreColor = (score: number) => {
     if (score >= 90) return 'text-green-600'
@@ -195,19 +175,30 @@ export function CompetitorAnalysis({ analysis, url }: CompetitorAnalysisProps) {
                 </div>
 
                 <div className="border-t pt-4">
-                  <h4 className="font-medium mb-3">Market Position Analysis</h4>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-center">
+                  <h4 className="font-medium mb-3">Your Site Analysis</h4>
+                  <div className="space-y-4">
                     <div className="bg-blue-50 p-4 rounded-lg">
-                      <div className="text-2xl font-bold text-blue-600">4th</div>
-                      <div className="text-sm text-gray-600">Market Position</div>
+                      <h5 className="font-semibold mb-2">Site Performance Summary</h5>
+                      <div className="space-y-2">
+                        {competitorData.insights.map((insight, index) => (
+                          <div key={index} className="flex items-center gap-2 text-sm">
+                            <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                            {insight}
+                          </div>
+                        ))}
+                      </div>
                     </div>
-                    <div className="bg-green-50 p-4 rounded-lg">
-                      <div className="text-2xl font-bold text-green-600">↑23%</div>
-                      <div className="text-sm text-gray-600">Growth Opportunity</div>
-                    </div>
-                    <div className="bg-purple-50 p-4 rounded-lg">
-                      <div className="text-2xl font-bold text-purple-600">67</div>
-                      <div className="text-sm text-gray-600">Competitive Score</div>
+                    
+                    <div className="bg-yellow-50 p-4 rounded-lg">
+                      <h5 className="font-semibold mb-2 flex items-center gap-2">
+                        <span className="text-yellow-600">⚡</span>
+                        Upgrade for Competitive Analysis
+                      </h5>
+                      <div className="space-y-1 text-sm text-gray-600">
+                        {competitorData.recommendations.map((rec, index) => (
+                          <div key={index}>• {rec}</div>
+                        ))}
+                      </div>
                     </div>
                   </div>
                 </div>

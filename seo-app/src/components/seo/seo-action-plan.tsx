@@ -50,167 +50,256 @@ export function SEOActionPlan({ analysis, url }: SEOActionPlanProps) {
   const [completedTasks, setCompletedTasks] = useState<Set<string>>(new Set())
   const [showDetailedPlan, setShowDetailedPlan] = useState(false)
 
-  // Comprehensive action items based on analysis
-  const actionItems: ActionItem[] = [
-    {
-      id: 'fix-title-tags',
-      title: 'Fix Duplicate Title Tags',
-      description: 'Create unique, compelling title tags for all pages to improve click-through rates',
-      priority: 'high',
-      effort: 'medium',
-      impact: 'high',
-      category: 'technical',
-      timeframe: '1-2 weeks',
-      resources: ['SEO Specialist', 'Developer'],
-      steps: [
-        'Audit all existing title tags',
-        'Create unique titles for each page',
-        'Implement title tag optimization',
-        'Test and validate changes'
-      ],
-      completed: false,
-      kpis: ['Click-through rate', 'Search rankings', 'Impressions']
-    },
-    {
-      id: 'optimize-page-speed',
-      title: 'Optimize Page Loading Speed',
-      description: 'Improve Core Web Vitals to enhance user experience and search rankings',
-      priority: 'high',
-      effort: 'high',
-      impact: 'high',
-      category: 'technical',
-      timeframe: '2-4 weeks',
-      resources: ['Frontend Developer', 'DevOps Engineer'],
-      steps: [
-        'Compress and optimize images',
-        'Minify CSS and JavaScript',
-        'Implement lazy loading',
-        'Optimize server response time',
-        'Enable browser caching'
-      ],
-      completed: false,
-      kpis: ['Page load time', 'Core Web Vitals', 'Bounce rate']
-    },
-    {
-      id: 'content-optimization',
-      title: 'Optimize Content for Target Keywords',
-      description: 'Enhance content to better target primary and secondary keywords',
-      priority: 'high',
-      effort: 'medium',
-      impact: 'high',
-      category: 'content',
-      timeframe: '2-4 weeks',
-      resources: ['Content Writer', 'SEO Specialist'],
-      steps: [
-        'Conduct keyword research',
-        'Analyze competitor content',
-        'Update existing content',
-        'Create new targeted content',
-        'Optimize internal linking'
-      ],
-      completed: false,
-      kpis: ['Keyword rankings', 'Organic traffic', 'Time on page']
-    },
-    {
-      id: 'mobile-optimization',
-      title: 'Implement Mobile-First Design',
-      description: 'Ensure optimal mobile experience across all devices',
-      priority: 'high',
-      effort: 'high',
-      impact: 'high',
-      category: 'user-experience',
-      timeframe: '2-4 weeks',
-      resources: ['UX Designer', 'Frontend Developer'],
-      steps: [
-        'Audit mobile usability',
-        'Fix touch target issues',
-        'Optimize mobile page speed',
-        'Test across devices',
-        'Implement responsive design improvements'
-      ],
-      completed: false,
-      kpis: ['Mobile usability score', 'Mobile traffic', 'Mobile conversions']
-    },
-    {
-      id: 'schema-markup',
-      title: 'Implement Structured Data',
-      description: 'Add schema markup to enhance search result appearance',
-      priority: 'medium',
-      effort: 'medium',
-      impact: 'medium',
-      category: 'technical',
-      timeframe: '1-2 weeks',
-      resources: ['Developer', 'SEO Specialist'],
-      steps: [
-        'Identify relevant schema types',
-        'Implement structured data',
-        'Validate with testing tools',
-        'Monitor rich snippets'
-      ],
-      completed: false,
-      kpis: ['Rich snippet appearance', 'Click-through rate', 'SERP visibility']
-    },
-    {
-      id: 'link-building',
-      title: 'Strategic Link Building Campaign',
-      description: 'Build high-quality backlinks to improve domain authority',
-      priority: 'medium',
-      effort: 'high',
-      impact: 'high',
-      category: 'off-page',
-      timeframe: '3+ months',
-      resources: ['SEO Specialist', 'Content Writer', 'Outreach Specialist'],
-      steps: [
-        'Identify link opportunities',
-        'Create linkable content assets',
-        'Conduct competitor backlink analysis',
-        'Execute outreach campaigns',
-        'Monitor link acquisition'
-      ],
-      completed: false,
-      kpis: ['Domain authority', 'Referring domains', 'Backlink quality']
-    },
-    {
-      id: 'local-seo',
-      title: 'Optimize for Local Search',
-      description: 'Improve local search visibility and Google My Business presence',
-      priority: 'medium',
-      effort: 'low',
-      impact: 'medium',
-      category: 'off-page',
-      timeframe: '1-2 weeks',
-      resources: ['SEO Specialist', 'Marketing Team'],
-      steps: [
-        'Optimize Google My Business profile',
-        'Ensure NAP consistency',
-        'Gather customer reviews',
-        'Create local content',
-        'Build local citations'
-      ],
-      completed: false,
-      kpis: ['Local rankings', 'Google My Business views', 'Local traffic']
-    },
-    {
-      id: 'analytics-setup',
-      title: 'Advanced Analytics Implementation',
-      description: 'Set up comprehensive tracking and monitoring systems',
-      priority: 'low',
-      effort: 'medium',
-      impact: 'medium',
-      category: 'technical',
-      timeframe: '1-2 weeks',
-      resources: ['Developer', 'Analytics Specialist'],
-      steps: [
-        'Implement Google Analytics 4',
-        'Set up Search Console',
-        'Configure conversion tracking',
-        'Create custom dashboards',
-        'Set up automated reporting'
-      ],
-      completed: false,
-      kpis: ['Data accuracy', 'Conversion tracking', 'Report completeness']
+  const generateRealActionItems = (): ActionItem[] => {
+    const actions: ActionItem[] = []
+    
+    // Performance-based actions
+    const perfSection = analysis.sections.performance
+    if (perfSection.score < 80) {
+      if (perfSection.responseTime > 3000) {
+        actions.push({
+          id: 'optimize-server-response',
+          title: 'Optimize Server Response Time',
+          description: `Server response time is ${(perfSection.responseTime / 1000).toFixed(1)}s - optimize for better performance`,
+          priority: 'high',
+          effort: 'high',
+          impact: 'high',
+          category: 'technical',
+          timeframe: '1-2 weeks',
+          resources: ['Backend Developer', 'DevOps Engineer'],
+          steps: [
+            'Analyze server performance bottlenecks',
+            'Optimize database queries',
+            'Implement server-side caching',
+            'Consider CDN implementation',
+            'Monitor server metrics'
+          ],
+          completed: false,
+          kpis: ['Server response time', 'Time to First Byte', 'Performance score']
+        })
+      }
+      
+      if (perfSection.pageSize > 3000000) {
+        actions.push({
+          id: 'reduce-page-weight',
+          title: 'Reduce Page Weight',
+          description: `Page size is ${(perfSection.pageSize / 1000000).toFixed(1)}MB - optimize resources`,
+          priority: 'high',
+          effort: 'medium',
+          impact: 'high',
+          category: 'technical',
+          timeframe: '1-2 weeks',
+          resources: ['Frontend Developer'],
+          steps: [
+            'Compress and optimize images',
+            'Minify CSS and JavaScript',
+            'Remove unused resources',
+            'Implement lazy loading',
+            'Enable GZIP compression'
+          ],
+          completed: false,
+          kpis: ['Page size', 'Load time', 'Core Web Vitals']
+        })
+      }
     }
-  ]
+    
+    // Meta and content issues
+    const metaSection = analysis.sections.meta
+    if (metaSection.title.issues.length > 0) {
+      actions.push({
+        id: 'fix-title-issues',
+        title: 'Fix Title Tag Issues',
+        description: `Address title problems: ${metaSection.title.issues.join(', ')}`,
+        priority: 'high',
+        effort: 'low',
+        impact: 'high',
+        category: 'content',
+        timeframe: '1 week',
+        resources: ['SEO Specialist', 'Content Writer'],
+        steps: [
+          'Review current title tag',
+          'Optimize length (30-60 characters)',
+          'Include target keywords',
+          'Make it compelling for clicks',
+          'Test and validate changes'
+        ],
+        completed: false,
+        kpis: ['Click-through rate', 'Search rankings', 'Title tag optimization']
+      })
+    }
+    
+    if (metaSection.description.issues.length > 0) {
+      actions.push({
+        id: 'fix-meta-description',
+        title: 'Optimize Meta Description',
+        description: `Fix meta description: ${metaSection.description.issues.join(', ')}`,
+        priority: 'medium',
+        effort: 'low',
+        impact: 'medium',
+        category: 'content',
+        timeframe: '1 week',
+        resources: ['SEO Specialist', 'Content Writer'],
+        steps: [
+          'Write compelling meta descriptions',
+          'Keep within 120-160 characters',
+          'Include call-to-action',
+          'Match search intent',
+          'A/B test different versions'
+        ],
+        completed: false,
+        kpis: ['Click-through rate', 'Meta description optimization', 'SERP appearance']
+      })
+    }
+    
+    // Crawlability issues
+    const crawlSection = analysis.sections.crawlability
+    if (!crawlSection.sitemap.exists) {
+      actions.push({
+        id: 'create-xml-sitemap',
+        title: 'Create XML Sitemap',
+        description: 'Generate and submit XML sitemap to help search engines discover your pages',
+        priority: 'high',
+        effort: 'medium',
+        impact: 'high',
+        category: 'technical',
+        timeframe: '1 week',
+        resources: ['Developer', 'SEO Specialist'],
+        steps: [
+          'Generate comprehensive XML sitemap',
+          'Include all important pages',
+          'Add proper priority and frequency',
+          'Submit to Google Search Console',
+          'Monitor sitemap status'
+        ],
+        completed: false,
+        kpis: ['Pages indexed', 'Crawl efficiency', 'Search visibility']
+      })
+    }
+    
+    if (!crawlSection.robotsTxt.exists) {
+      actions.push({
+        id: 'create-robots-txt',
+        title: 'Implement robots.txt',
+        description: 'Create robots.txt file to guide search engine crawling',
+        priority: 'medium',
+        effort: 'low',
+        impact: 'medium',
+        category: 'technical',
+        timeframe: '1 week',
+        resources: ['Developer', 'SEO Specialist'],
+        steps: [
+          'Create robots.txt file',
+          'Define crawling rules',
+          'Include sitemap location',
+          'Test with robots.txt tester',
+          'Monitor crawl behavior'
+        ],
+        completed: false,
+        kpis: ['Crawl efficiency', 'Bot guidance', 'SEO compliance']
+      })
+    }
+    
+    // External factors
+    const extFactors = analysis.sections.externalFactors
+    if (!extFactors.https) {
+      actions.push({
+        id: 'enable-https',
+        title: 'Enable HTTPS Security',
+        description: 'Implement SSL certificate for secure connections and SEO benefits',
+        priority: 'high',
+        effort: 'medium',
+        impact: 'high',
+        category: 'technical',
+        timeframe: '1 week',
+        resources: ['DevOps Engineer', 'Developer'],
+        steps: [
+          'Obtain SSL certificate',
+          'Configure HTTPS redirects',
+          'Update internal links',
+          'Test security implementation',
+          'Monitor HTTPS status'
+        ],
+        completed: false,
+        kpis: ['Security score', 'Trust indicators', 'Search rankings']
+      })
+    }
+    
+    if (!extFactors.schemaMarkup.exists) {
+      actions.push({
+        id: 'implement-schema',
+        title: 'Add Structured Data',
+        description: 'Implement schema markup for rich snippets and better search appearance',
+        priority: 'medium',
+        effort: 'medium',
+        impact: 'medium',
+        category: 'technical',
+        timeframe: '1-2 weeks',
+        resources: ['Developer', 'SEO Specialist'],
+        steps: [
+          'Identify relevant schema types',
+          'Implement JSON-LD markup',
+          'Validate with testing tools',
+          'Monitor rich snippet appearance',
+          'Expand to other content types'
+        ],
+        completed: false,
+        kpis: ['Rich snippet appearance', 'Click-through rate', 'SERP features']
+      })
+    }
+    
+    // Link structure improvements
+    const linkSection = analysis.sections.linkStructure
+    if (linkSection.score < 70) {
+      actions.push({
+        id: 'improve-internal-linking',
+        title: 'Optimize Internal Link Structure',
+        description: 'Improve internal linking for better SEO and user navigation',
+        priority: 'medium',
+        effort: 'medium',
+        impact: 'medium',
+        category: 'content',
+        timeframe: '2-3 weeks',
+        resources: ['SEO Specialist', 'Content Writer'],
+        steps: [
+          'Audit current link structure',
+          'Identify linking opportunities',
+          'Create topic clusters',
+          'Implement strategic internal links',
+          'Monitor link performance'
+        ],
+        completed: false,
+        kpis: ['Internal link distribution', 'Page authority flow', 'User engagement']
+      })
+    }
+    
+    // If overall score is good, add maintenance tasks
+    if (analysis.overallScore > 80) {
+      actions.push({
+        id: 'seo-monitoring',
+        title: 'SEO Performance Monitoring',
+        description: 'Set up ongoing monitoring to maintain excellent SEO performance',
+        priority: 'low',
+        effort: 'low',
+        impact: 'medium',
+        category: 'technical',
+        timeframe: '1 week',
+        resources: ['SEO Specialist'],
+        steps: [
+          'Set up automated monitoring',
+          'Create performance alerts',
+          'Schedule regular audits',
+          'Track competitor changes',
+          'Monitor algorithm updates'
+        ],
+        completed: false,
+        kpis: ['SEO stability', 'Performance trends', 'Competitive position']
+      })
+    }
+    
+    return actions
+  }
+  
+  const actionItems: ActionItem[] = generateRealActionItems()
 
   const toggleTaskCompletion = (taskId: string) => {
     const newCompleted = new Set(completedTasks)
