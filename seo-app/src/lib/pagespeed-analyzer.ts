@@ -53,7 +53,7 @@ export interface PageSpeedAnalysis {
 }
 
 export class PageSpeedAnalyzer {
-  private static readonly API_BASE = 'https://www.googleapis.com/pagespeed/insights/v5/runPagespeed'
+  private static readonly API_BASE = 'https://www.googleapis.com/pagespeedonline/v5/runPagespeed'
   
   /**
    * Analyze page performance using Google PageSpeed Insights API
@@ -70,6 +70,8 @@ export class PageSpeedAnalyzer {
 
       const apiUrl = `${this.API_BASE}?url=${encodeURIComponent(url)}&key=${apiKey}&strategy=${strategy}&category=performance`
       
+      console.log('🔗 PageSpeed API URL:', apiUrl.replace(apiKey, 'API_KEY_HIDDEN'))
+      
       const response = await fetch(apiUrl, {
         signal: AbortSignal.timeout(30000), // 30 second timeout
         headers: {
@@ -78,7 +80,13 @@ export class PageSpeedAnalyzer {
       })
 
       if (!response.ok) {
-        throw new Error(`PageSpeed API error: ${response.status} ${response.statusText}`)
+        console.error('❌ PageSpeed API Error:', response.status, response.statusText)
+        const errorText = await response.text()
+        console.error('❌ Error details:', errorText)
+        
+        // Use fallback instead of throwing error
+        console.warn('⚠️ Falling back to basic performance analysis')
+        return this.fallbackPerformanceAnalysis(url)
       }
 
       const data = await response.json()
