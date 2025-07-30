@@ -53,7 +53,7 @@ export interface PageSpeedAnalysis {
 }
 
 export class PageSpeedAnalyzer {
-  private static readonly API_BASE = 'https://www.googleapis.com/pagespeed/v5/runPagespeed'
+  private static readonly API_BASE = 'https://www.googleapis.com/pagespeed/insights/v5/runPagespeed'
   
   /**
    * Analyze page performance using Google PageSpeed Insights API

@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Navigation } from '@/components/layout/navigation'
 import { HeroSection } from '@/components/landing/hero-section'
+import { ModernLanding } from '@/components/landing/modern-landing'
 import { ResultsDashboard } from '@/components/seo/results-dashboard'
 import { UserDashboard } from '@/components/dashboard/user-dashboard'
 import { PricingPage } from '@/components/pricing/pricing-page'
@@ -124,6 +125,25 @@ export default function Home() {
         )
       case 'home':
       default:
+        // Show modern landing page for non-authenticated users
+        if (!user && !analysis) {
+          return (
+            <ModernLanding 
+              onScan={handleScan} 
+              onNavigate={(page) => {
+                if (page === 'pricing') {
+                  setCurrentPage('pricing')
+                } else if (page === 'auth') {
+                  // Handle auth navigation - you may want to trigger sign-in modal or redirect
+                  console.log('Navigate to auth')
+                }
+              }}
+              isScanning={isScanning} 
+            />
+          )
+        }
+        
+        // Show original hero section for authenticated users or when analysis is present
         return (
           <>
             <HeroSection onScan={handleScan} isScanning={isScanning} />

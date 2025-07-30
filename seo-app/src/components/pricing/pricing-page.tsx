@@ -26,26 +26,36 @@ export function PricingPage({ onSignUp }: PricingPageProps) {
     setLoading(priceId)
     
     try {
-      // Here you would integrate with Stripe
-      // For now, we'll simulate the process
-      console.log(`Subscribing to ${planName} with price ID: ${priceId}`)
+      console.log(`Starting ${planName} subscription with price ID: ${priceId}`)
       
-      // Redirect to Stripe Checkout
-      // const response = await fetch('/api/create-checkout-session', {
-      //   method: 'POST',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify({ priceId, userId: user.id })
-      // })
+      // Create Stripe checkout session
+      const response = await fetch('/api/create-checkout-session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          priceId, 
+          userId: user.id, 
+          planName 
+        })
+      })
       
-      // if (response.ok) {
-      //   const { url } = await response.json()
-      //   window.location.href = url
-      // }
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.error || 'Failed to create checkout session')
+      }
       
-      alert(`Subscription process initiated for ${planName}. This would redirect to Stripe Checkout in a real implementation.`)
+      const { url } = await response.json()
+      
+      if (url) {
+        // Redirect to Stripe Checkout
+        window.location.href = url
+      } else {
+        throw new Error('No checkout URL received')
+      }
+      
     } catch (error) {
       console.error('Subscription error:', error)
-      alert('Failed to start subscription process. Please try again.')
+      alert(`Failed to start subscription process: ${error instanceof Error ? error.message : 'Unknown error'}. Please try again.`)
     } finally {
       setLoading(null)
     }
@@ -78,7 +88,10 @@ export function PricingPage({ onSignUp }: PricingPageProps) {
       name: 'Pro',
       description: 'For serious marketers and agencies',
       price: { monthly: 29, yearly: 290 },
-      priceId: { monthly: 'price_pro_monthly', yearly: 'price_pro_yearly' },
+      priceId: { 
+        monthly: process.env.NEXT_PUBLIC_STRIPE_PRICE_PRO_MONTHLY || 'price_1234567890abcdef', 
+        yearly: process.env.NEXT_PUBLIC_STRIPE_PRICE_PRO_YEARLY || 'price_0987654321fedcba'
+      },
       features: [
         'Unlimited SEO scans',
         'Advanced analysis reports',

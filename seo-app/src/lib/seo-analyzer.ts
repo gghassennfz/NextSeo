@@ -34,7 +34,10 @@ export class SEOAnalyzer {
       const analyzer = new SEOAnalyzer(response.data, url)
       const responseTime = Date.now() - startTime
 
-      // 🔧 REVERTED: Using original analysis to prevent crashes
+      // 🚀 REAL PAGESPEED API: Using Google Lighthouse data for performance analysis
+      console.log('🔍 Fetching real Google PageSpeed Insights data...')
+      const pageSpeedAnalysis = await PageSpeedAnalyzer.analyzePerformance(url)
+      
       const analysis: SEOAnalysis = {
         url,
         timestamp: new Date().toISOString(),
@@ -44,7 +47,7 @@ export class SEOAnalyzer {
           pageQuality: analyzer.analyzePageQuality(),
           linkStructure: analyzer.analyzeLinkStructure(),
           pageStructure: analyzer.analyzePageStructure(),
-          performance: analyzer.analyzePerformance(responseTime, response.data.length),
+          performance: analyzer.convertPageSpeedToPerformanceAnalysis(pageSpeedAnalysis),
           crawlability: await analyzer.analyzeCrawlability(),
           externalFactors: analyzer.analyzeExternalFactors()
         }
@@ -390,14 +393,13 @@ export class SEOAnalyzer {
 
     return {
       score,
-      loadTime: pageSpeedAnalysis.loadTime,
-      pageSize: pageSpeedAnalysis.totalPageSize,
-      requests: pageSpeedAnalysis.totalRequestCount,
-      coreWebVitals: {
-        lcp: pageSpeedAnalysis.coreWebVitals.lcp.value,
-        fid: pageSpeedAnalysis.coreWebVitals.fid.value,
-        cls: pageSpeedAnalysis.coreWebVitals.cls.value,
-        fcp: pageSpeedAnalysis.coreWebVitals.fcp.value
+      responseTime: pageSpeedAnalysis.loadTime || 1000,
+      pageSize: pageSpeedAnalysis.totalPageSize || 100000,
+      assetsCount: {
+        css: pageSpeedAnalysis.resourceSummary?.stylesheetCount || 0,
+        js: pageSpeedAnalysis.resourceSummary?.scriptCount || 0, 
+        images: pageSpeedAnalysis.resourceSummary?.imageCount || 0,
+        total: pageSpeedAnalysis.totalRequestCount || 0
       },
       issues
     }
